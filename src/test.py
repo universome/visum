@@ -8,11 +8,11 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-from utils_.nms import nms
-from utils_ import utils
-from utils_ import transforms as T
-from utils_.engine import train_one_epoch, evaluate
-from utils_.visum_utils import VisumData
+from utils.nms import nms
+from utils import utils
+from utils import transforms as T
+from utils.engine import train_one_epoch, evaluate
+from utils.visum_utils import VisumData
 
 
 def main():

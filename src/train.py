@@ -1,13 +1,16 @@
+import os
 import argparse
+
 import torch
 import torch.utils.data
 import torchvision
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-from utils_.engine import train_one_epoch, evaluate
-from utils_ import utils
-from utils_ import transforms as T
-from utils_.visum_utils import VisumData
+
+from utils.engine import train_one_epoch, evaluate
+from utils import utils
+from utils import transforms as T
+from utils.visum_utils import VisumData
 
 
 def main():
