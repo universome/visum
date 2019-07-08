@@ -10,7 +10,7 @@ from utils_.coco_eval import CocoEvaluator
 import utils_.utils as utils
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, accumulation_factor=1):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -23,7 +23,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
 
         lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
-    for images, targets, _ in metric_logger.log_every(data_loader, print_freq, header):
+    for batch_idx, (images, targets, _) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -42,15 +42,22 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
             print(loss_dict_reduced)
             sys.exit(1)
 
-        optimizer.zero_grad()
         losses.backward()
-        optimizer.step()
+
+        if batch_idx % accumulation_factor == accumulation_factor - 1:
+            optimizer.step()
+            optimizer.zero_grad()
 
         if lr_scheduler is not None:
             lr_scheduler.step()
 
         metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+
+    if batch_idx % accumulation_factor != accumulation_factor - 1:
+        optimizer.step()
+        optimizer.zero_grad()
+
     return loss_value
 
 
