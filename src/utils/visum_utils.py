@@ -74,7 +74,9 @@ class VisumData(Dataset):
             target = None
 
         if self.transforms is not None:
+            # print('TARGET before transform', target)
             img, target = self.transforms(img, target)
+            # print('TARGET after transform:', target)
 
         return img, target, file_name
 

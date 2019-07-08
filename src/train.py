@@ -10,8 +10,8 @@ from torchvision.models.detection.rpn import AnchorGenerator
 
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
-from src.utils import transforms as T
 from src.utils.visum_utils import VisumData
+from src.utils.transforms import create_transform
 
 
 def main():
@@ -27,18 +27,8 @@ def main():
     if not os.path.isdir(args['checkpoints_path']):
         os.makedirs(args['checkpoints_path'], exist_ok=True)
 
-    print('Checkpoints will be saved to {args["checkpoints_path"]}')
-
-    # Data augmentation
-    def get_transform(train):
-        transforms = []
-        # converts the image, a PIL image, into a PyTorch Tensor
-        transforms.append(T.ToTensor())
-        if train:
-            # during training, randomly flip the training images
-            # and ground-truth for data augmentation
-            transforms.append(T.RandomHorizontalFlip(0.5))
-        return T.Compose(transforms)
+    full_checkpoint_path = os.path.join(os.getcwd(), args["checkpoints_path"])
+    print(f'Checkpoints will be saved to {full_checkpoint_path}')
 
     backbone = torchvision.models.mobilenet_v2(pretrained=True).features
     backbone.out_channels = 1280
@@ -60,8 +50,8 @@ def main():
     # print(model)
 
     # use our dataset and defined transformations
-    dataset = VisumData(args['data_path'], modality='rgb', transforms=get_transform(train=True))
-    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=get_transform(train=False))
+    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(train=True))
+    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform(train=False))
 
     # split the dataset in train and test set
     torch.manual_seed(1)

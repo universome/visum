@@ -12,7 +12,7 @@ from torchvision.models.detection.rpn import AnchorGenerator
 
 from src.utils.nms import nms
 from src.utils import utils
-from src.utils import transforms as T
+from src.utils.transforms import create_transform
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils.visum_utils import VisumData
 
@@ -27,18 +27,8 @@ def main():
     NMS_THR = 0.1  # non maximum suppresion threshold
     REJECT_THR = 0.5  # rejection threshold to classify as unknown class (naive approach!)
 
-    def get_transform(train):
-        transforms = []
-        # converts the image, a PIL image, into a PyTorch Tensor
-        transforms.append(T.ToTensor())
-        if train:
-            # during training, randomly flip the training images
-            # and ground-truth for data augmentation
-            transforms.append(T.RandomHorizontalFlip(0.5))
-        return T.Compose(transforms)
-
     # Load datasets
-    test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=get_transform(False))
+    test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=create_transform(False))
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 

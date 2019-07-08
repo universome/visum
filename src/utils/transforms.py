@@ -1,17 +1,38 @@
-import random
 import torch
+import torchvision
+import numpy as np
+import torchvision.transforms.functional as F
+import albumentations as A
+# from albumentations.pytorch import ToTensor
 
-from torchvision.transforms import functional as F
 
+# Data augmentation
+def create_transform(train:bool):
+    transforms_to_apply = []
 
-def _flip_coco_person_keypoints(kps, width):
-    flip_inds = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
-    flipped_data = kps[:, flip_inds]
-    flipped_data[..., 0] = width - flipped_data[..., 0]
-    # Maintain COCO convention that if visibility == 0, then x, y = 0
-    inds = flipped_data[..., 2] == 0
-    flipped_data[inds] = 0
-    return flipped_data
+    if train:
+        augmentations = [
+            A.HorizontalFlip(0.5),
+            A.Blur(),
+            # A.RandomCrop(400, 400),
+            A.RandomGamma(),
+            A.ShiftScaleRotate(),
+            A.HueSaturationValue(),
+            A.RGBShift(),
+        ]
+
+        albu_transform = A.Compose(augmentations, bbox_params={
+            'format': 'pascal_voc',
+            'min_area': 0.,
+            'min_visibility': 0.,
+            'label_fields': ['labels']
+        })
+
+        transforms_to_apply.append(albu_transform)
+
+    transforms_to_apply.append(ToTensor())
+
+    return Compose(transforms_to_apply)
 
 
 class Compose(object):
@@ -20,32 +41,47 @@ class Compose(object):
 
     def __call__(self, image, target):
         for t in self.transforms:
-            image, target = t(image, target)
-        return image, target
+            if isinstance(t, A.Compose):
+                albu_input = convert_to_albu_format(image, target)
+                albu_result = t(**albu_input)
+                image, target = convert_from_albu_format(albu_result)
+            else:
+                image, target = t(image, target)
 
-
-class RandomHorizontalFlip(object):
-    def __init__(self, prob):
-        self.prob = prob
-
-    def __call__(self, image, target=None):
-        if random.random() < self.prob:
-            height, width = image.shape[-2:]
-            image = image.flip(-1)
-            if target is not None:
-                bbox = target["boxes"]
-                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-                target["boxes"] = bbox
-                if "masks" in target:
-                    target["masks"] = target["masks"].flip(-1)
-                if "keypoints" in target:
-                    keypoints = target["keypoints"]
-                    keypoints = _flip_coco_person_keypoints(keypoints, width)
-                    target["keypoints"] = keypoints
         return image, target
 
 
 class ToTensor(object):
     def __call__(self, image, target):
-        image = F.to_tensor(image)
-        return image, target
+        return F.to_tensor(image), target
+
+
+def convert_to_albu_format(image, target):
+    return {
+        "image": np.array(image),
+        "bboxes": target["boxes"],
+        "labels": target["labels"]
+    }
+
+
+def convert_from_albu_format(albu_result):
+    # TODO: check that if we crop the image too much some labels and bboxes are really removed
+    return albu_result["image"], {
+        "boxes": torch.Tensor(albu_result["bboxes"]),
+        "labels": torch.Tensor(albu_result["labels"])
+    }
+
+# class BeforeAlbuTransform(object):
+#     def __call__(self, image, target):
+#         return {
+#             "image": image,
+#             "bboxes": target["boxes"],
+#             "labels": target["labels"]
+#         }
+#
+# class AfterAlbuTransform(object):
+#     def __call__(self, albu_result):
+#         return albu_result["image"], {
+#             "boxes": albu_result["bboxes"],
+#             "labels": albu_result["labels"]
+#         }

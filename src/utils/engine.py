@@ -1,9 +1,10 @@
 import math
 import sys
 import time
-import torch
 
+import torch
 import torchvision.models.detection.mask_rcnn
+from tqdm import tqdm
 
 from src.utils.coco_utils import get_coco_api_from_dataset
 from src.utils.coco_eval import CocoEvaluator
@@ -24,7 +25,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
         lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
     for images, targets, _ in metric_logger.log_every(data_loader, print_freq, header):
-        images = list(image.to(device) for image in images)
+        images = [image.to(device) for image in images]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         loss_dict = model(images, targets)
@@ -54,18 +55,6 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
     return loss_value
 
 
-def _get_iou_types(model):
-    model_without_ddp = model
-    if isinstance(model, torch.nn.parallel.DistributedDataParallel):
-        model_without_ddp = model.module
-    iou_types = ["bbox"]
-    if isinstance(model_without_ddp, torchvision.models.detection.MaskRCNN):
-        iou_types.append("segm")
-    if isinstance(model_without_ddp, torchvision.models.detection.KeypointRCNN):
-        iou_types.append("keypoints")
-    return iou_types
-
-
 @torch.no_grad()
 def evaluate(model, data_loader, device):
     n_threads = torch.get_num_threads()
@@ -77,10 +66,9 @@ def evaluate(model, data_loader, device):
     header = 'Test:'
 
     coco = get_coco_api_from_dataset(data_loader.dataset)
-    iou_types = _get_iou_types(model)
-    coco_evaluator = CocoEvaluator(coco, iou_types)
+    coco_evaluator = CocoEvaluator(coco, ["bbox"])
 
-    for image, targets, _ in metric_logger.log_every(data_loader, 100, header):
+    for image, targets, _ in tqdm(metric_logger.log_every(data_loader, 100, header)):
         image = list(img.to(device) for img in image)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
