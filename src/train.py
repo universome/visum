@@ -1,3 +1,4 @@
+import sys; sys.path.append('.')
 import os
 import argparse
 
@@ -7,10 +8,10 @@ import torchvision
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 
-from utils.engine import train_one_epoch, evaluate
-from utils import utils
-from utils import transforms as T
-from utils.visum_utils import VisumData
+from src.utils.engine import train_one_epoch, evaluate
+from src.utils import utils
+from src.utils import transforms as T
+from src.utils.visum_utils import VisumData
 
 
 def main():
@@ -20,7 +21,13 @@ def main():
     parser.add_argument('--epochs', default=50, type=int, metavar='', help='number of epochs')
     parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
+    parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
     args = vars(parser.parse_args())
+
+    if not os.path.isdir(args['checkpoints_path']):
+        os.makedirs(args['checkpoints_path'], exist_ok=True)
+
+    print('Checkpoints will be saved to {args["checkpoints_path"]}')
 
     # Data augmentation
     def get_transform(train):
@@ -43,15 +50,14 @@ def main():
                                                     output_size=7,
                                                     sampling_ratio=2)
 
-
     # put the pieces together inside a FasterRCNN model
     model = FasterRCNN(backbone,
-                    num_classes=10,
-                    rpn_anchor_generator=anchor_generator,
-                    box_roi_pool=roi_pooler)
+                       num_classes=10,
+                       rpn_anchor_generator=anchor_generator,
+                       box_roi_pool=roi_pooler)
 
     # See the model architecture
-    print(model)
+    # print(model)
 
     # use our dataset and defined transformations
     dataset = VisumData(args['data_path'], modality='rgb', transforms=get_transform(train=True))
@@ -80,9 +86,7 @@ def main():
     optimizer = torch.optim.SGD(params, lr=args['lr'],
                                 momentum=0.9, weight_decay=args['l2'])
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=10,
-                                                   gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     for epoch in range(args['epochs']):
         # train for one epoch, printing every 10 iterations
@@ -91,6 +95,9 @@ def main():
         lr_scheduler.step()
         # evaluate on the test dataset
         evaluator = evaluate(model, data_loader_val, device=device)
+
+        print(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
+        torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
 
     torch.save(model, args['model_path'])
 

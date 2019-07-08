@@ -1,6 +1,7 @@
 import os
 import argparse
 import csv
+
 import numpy as np
 import torch
 from PIL import Image
@@ -8,11 +9,12 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-from utils.nms import nms
-from utils import utils
-from utils import transforms as T
-from utils.engine import train_one_epoch, evaluate
-from utils.visum_utils import VisumData
+
+from src.utils.nms import nms
+from src.utils import utils
+from src.utils import transforms as T
+from src.utils.engine import train_one_epoch, evaluate
+from src.utils.visum_utils import VisumData
 
 
 def main():
