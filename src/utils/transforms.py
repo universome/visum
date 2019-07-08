@@ -13,12 +13,12 @@ def create_transform(train:bool):
     if train:
         augmentations = [
             A.HorizontalFlip(0.5),
-            A.Blur(),
+            # A.Blur(),
             # A.RandomCrop(400, 400),
-            A.RandomGamma(),
-            A.ShiftScaleRotate(),
-            A.HueSaturationValue(),
-            A.RGBShift(),
+            # A.RandomGamma(),
+            # A.ShiftScaleRotate(),
+            # A.HueSaturationValue(),
+            # A.RGBShift(),
         ]
 
         albu_transform = A.Compose(augmentations, bbox_params={
