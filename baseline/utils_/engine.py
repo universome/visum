@@ -29,7 +29,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, ac
 
         loss_dict = model(images, targets)
 
-        losses = sum(loss for loss in loss_dict.values())
+        losses = sum(loss for loss in loss_dict.values()) / accumulation_factor
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
