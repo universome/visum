@@ -1,4 +1,4 @@
-## Ideas List
+## TODO
 
 [] Gradient accumulation
 [] Albumentations
@@ -11,3 +11,7 @@
 [] check why new class prediction does not work: if it RPN or classification
 [] Reduce images, because large part of an image is not useful at all
 [] Try single-stage detectors
+[] Visualize predictions and train data (we would like to see what part of an image can be cropped out)
+[] TensorboardX
+[] Test-time augmentation
+[] Normal ensembling; ensembling models from previous epochs
