@@ -79,7 +79,6 @@ def parse_cli_args():
     parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
     parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
-    parser.add_argument('--augmentations', default=DEFAULT_AUGMENTATIONS, type=str, help='List of augmentations names to use', nargs='+')
     parser.add_argument('--log_dir', type=str, help='Directory where Tensorboard logs are going to be saved', default='tensorboard-logs')
     parser.add_argument('--exclude_classes', type=int, nargs='+', default=[],
         help='Choose, which class idx (0-10) should be excluded during training and added to the validation as a new class.')
@@ -95,7 +94,6 @@ def parse_cli_args():
         os.makedirs(args['log_dir'], exist_ok=True)
 
     logger.info(f'Checkpoints will be saved to {os.path.join(os.getcwd(), args["checkpoints_path"])}')
-    logger.info(f'The following augmentations will be used for training: {args["augmentations"]}')
     logger.info(f'Tensorboard logs will be save to {args["log_dir"]}')
 
     return args
