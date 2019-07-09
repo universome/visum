@@ -2,6 +2,7 @@ import sys; sys.path.append('.')
 import os
 import argparse
 import logging
+from datetime import datetime
 
 import torch
 import torch.utils.data
@@ -53,7 +54,7 @@ def main():
                                 momentum=0.9, weight_decay=args['l2'])
 
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
-    tb_writer = SummaryWriter(log_dir=args['log_dir'])
+    tb_writer = SummaryWriter(log_dir=args['log_dir'], flush_secs=10)
 
     for epoch in range(args['epochs']):
         # train for one epoch, printing every 10 iterations
@@ -89,16 +90,21 @@ def parse_cli_args():
 
     args = vars(parser.parse_args())
 
+    exp_name = f'exp_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    logger.info(f'Current experiment name is {exp_name}')
+    args['checkpoints_path'] = os.path.join(os.getcwd(), args["checkpoints_path"], exp_name)
+    args['log_dir'] = os.path.join(os.getcwd(), args["log_dir"], exp_name)
+
     if not os.path.isdir(args['checkpoints_path']):
         logger.warn(f'Creating checkpoint directory: {args["checkpoints_path"]}')
         os.makedirs(args['checkpoints_path'], exist_ok=True)
 
     if not os.path.isdir(args['log_dir']):
-        logger.warn(f'Creating tensorboard logs directory: {args["checkpoints_path"]}')
+        logger.warn(f'Creating tensorboard logs directory: {args["log_dir"]}')
         os.makedirs(args['log_dir'], exist_ok=True)
 
-    logger.info(f'Checkpoints will be saved to {os.path.join(os.getcwd(), args["checkpoints_path"])}')
-    logger.info(f'Tensorboard logs will be save to {os.path.join(os.getcwd(), args["log_dir"])}')
+    logger.info(f'Checkpoints will be saved to {args["checkpoints_path"]}')
+    logger.info(f'Tensorboard logs will be save to {args["log_dir"]}')
 
     return args
 

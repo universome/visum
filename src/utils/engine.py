@@ -36,7 +36,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, tb
         num_iters_done = batch_idx + epoch * len(data_loader)
         for loss_name in loss_dict:
             tb_writer.add_scalar(f'Train/{loss_name}', loss_dict[loss_name], num_iters_done)
-        tb_writer.add_scalar('Learning rate', optimizer.param_groups[0]['lr'], num_iters_done)
+        tb_writer.add_scalar('Train/learning_rate', optimizer.param_groups[0]['lr'], num_iters_done)
         ### LOGGING END
 
         losses = sum(loss for loss in loss_dict.values()) / accumulation_factor
