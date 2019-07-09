@@ -90,7 +90,7 @@ def parse_cli_args():
         os.makedirs(args['checkpoints_path'], exist_ok=True)
 
     if not os.path.isdir(args['log_dir']):
-        logger.warn(f'Creating checkpoint directory: {args["checkpoints_path"]}')
+        logger.warn(f'Creating tensorboard logs directory: {args["checkpoints_path"]}')
         os.makedirs(args['log_dir'], exist_ok=True)
 
     logger.info(f'Checkpoints will be saved to {os.path.join(os.getcwd(), args["checkpoints_path"])}')
