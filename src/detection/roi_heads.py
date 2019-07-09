@@ -7,6 +7,7 @@ from torchvision.ops import boxes as box_ops
 from torchvision.ops import misc as misc_nn_ops
 from torchvision.ops import roi_align
 
+from src.constants import NUM_CLASSES
 from . import _utils as det_utils
 
 
@@ -16,7 +17,8 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
 
     Arguments:
         class_logits (Tensor)
-        box_regression (Tensor)
+        box_regression (Tensor)3.1389
+        labels (Tensor [N_samples x N_classes]
 
     Returns:
         classification_loss (Tensor)
@@ -26,7 +28,13 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     labels = torch.cat(labels, dim=0)
     regression_targets = torch.cat(regression_targets, dim=0)
 
-    classification_loss = F.cross_entropy(class_logits, labels)
+    # For one-hot only
+    # classification_loss = F.cross_entropy(class_logits, labels)
+
+    smoothed_labels = indices_to_smooth(labels)
+    class_logits = class_logits.log_softmax(1)
+
+    classification_loss = F.kl_div(class_logits, smoothed_labels, reduction='batchmean')
 
     # get indices that correspond to the regression targets for
     # the corresponding ground truth labels, to be used with
@@ -44,6 +52,17 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     box_loss = box_loss / labels.numel()
 
     return classification_loss, box_loss
+
+
+def indices_to_smooth(indices):
+    # p: Tensor of shape [N_samples]
+    smoothed_max_prob = 1.0
+    remaining_prob = 1.0 - smoothed_max_prob
+    smoothing_value = remaining_prob / (NUM_CLASSES - 1)
+    filled_probs_no_peak = torch.full((NUM_CLASSES,), smoothing_value).to(indices.device)
+    smoothed_prob = filled_probs_no_peak.repeat(indices.size(0), 1)
+    smoothed_prob.scatter_(1, indices.unsqueeze(1).type(torch.int64), smoothed_max_prob)
+    return smoothed_prob
 
 
 def maskrcnn_inference(x, labels):
@@ -521,6 +540,7 @@ class RoIHeads(torch.nn.Module):
             image_shapes (List[Tuple[H, W]])
             targets (List[Dict])
         """
+
         if self.training:
             proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
 
