@@ -28,31 +28,14 @@ DEFAULT_AUGMENTATIONS = (
     # 'RandomSunFlare',
 )
 
+
 logger = logging.getLogger(__name__)
 coloredlogs.install(level="DEBUG", logger=logger)
 
 
 def main():
     args = parse_cli_args()
-
-    backbone = torchvision.models.mobilenet_v2(pretrained=True).features
-    backbone.out_channels = 1280
-
-    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                    aspect_ratios=((0.5, 1.0, 2.0),))
-
-    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=[0],
-                                                    output_size=7,
-                                                    sampling_ratio=2)
-
-    # put the pieces together inside a FasterRCNN model
-    model = FasterRCNN(backbone,
-                       num_classes=10,
-                       rpn_anchor_generator=anchor_generator,
-                       box_roi_pool=roi_pooler)
-
-    # See the model architecture
-    # print(model)
+    model = build_model(args)
 
     # use our dataset and defined transformations
     dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(DEFAULT_AUGMENTATIONS))
@@ -128,6 +111,23 @@ def parse_cli_args():
     logger.info(f'Tensorboard logs will be save to {args["log_dir"]}')
 
     return args
+
+
+def build_model(args):
+    backbone = torchvision.models.mobilenet_v2(pretrained=True).features
+    backbone.out_channels = 1280
+
+    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
+                                    aspect_ratios=((0.5, 1.0, 2.0),))
+
+    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=[0], output_size=7, sampling_ratio=2)
+
+    # put the pieces together inside a FasterRCNN model
+    model = FasterRCNN(backbone, num_classes=10,
+                       rpn_anchor_generator=anchor_generator,
+                       box_roi_pool=roi_pooler)
+
+    return model
 
 
 def log_metrics(coco_evaluator, tb_writer):
