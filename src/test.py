@@ -1,3 +1,4 @@
+import sys; sys.path.append('.')
 import os
 import argparse
 import csv
@@ -9,12 +10,14 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
+from tqdm import tqdm
 
 from src.utils.nms import nms
 from src.utils import utils
 from src.utils.transforms import create_transform
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils.visum_utils import VisumData
+from src.train import build_model
 
 
 def main():
@@ -32,16 +35,18 @@ def main():
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    model = torch.load(args['model_path'])
+    model = build_model().to(device)
+    model.load_state_dict(torch.load(args['model_path']))
 
     test_loader = torch.utils.data.DataLoader(
         test_data, batch_size=1, shuffle=False, num_workers=4,
         collate_fn=utils.collate_fn)
 
     predictions = list()
-    for i, (imgs, _, file_names) in enumerate(test_loader):
+    for i, (imgs, _, file_names) in tqdm(enumerate(test_loader), total=len(test_loader)):
         # set the model to evaluation mode
         model.eval()
+
         with torch.no_grad():
             prediction = model(list(img.to(device) for img in imgs))
 

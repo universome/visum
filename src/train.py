@@ -24,7 +24,7 @@ coloredlogs.install(level="DEBUG", logger=logger)
 
 def main():
     args = parse_cli_args()
-    model = build_model(args)
+    model = build_model()
 
     # use our dataset and defined transformations
     dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS))
@@ -109,8 +109,8 @@ def parse_cli_args():
     return args
 
 
-def build_model(args):
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(num_classes=10, pretrained_backbone=True)
+def build_model(num_classes:int=10):
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(num_classes=num_classes, pretrained_backbone=True)
 
     return model
 
