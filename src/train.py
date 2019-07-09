@@ -65,8 +65,7 @@ def main():
 
         # evaluate on the val dataset
         coco_evaluator = evaluate(model, data_loader_val, device=device)
-        num_iters_done = (epoch + 1) * len(data_loader)
-        log_metrics(coco_evaluator, tb_writer, num_iters_done)
+        log_metrics(coco_evaluator, tb_writer, epoch)
 
         logger.info(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
         torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
@@ -115,20 +114,20 @@ def build_model(num_classes:int=10):
     return model
 
 
-def log_metrics(coco_evaluator, tb_writer, iteration):
+def log_metrics(coco_evaluator, tb_writer, epoch):
     stats = coco_evaluator.coco_eval['bbox'].stats
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[0], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ]", stats[1], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ]", stats[2], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[3], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[4], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[5], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ]", stats[6], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ]", stats[7], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[8], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[9], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[10], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[11], iteration)
+    tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_all__maxDets_100", stats[0], epoch)
+    tb_writer.add_scalar("VAL/AP__IoU_0_50__area_all__maxDets_100", stats[1], epoch)
+    tb_writer.add_scalar("VAL/AP__IoU_0_75__area_all__maxDets_100", stats[2], epoch)
+    tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_small__maxDets_100", stats[3], epoch)
+    tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_medium__maxDets_100", stats[4], epoch)
+    tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_ large__maxDets_100", stats[5], epoch)
+    tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_all__maxDets_  1", stats[6], epoch)
+    tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_all__maxDets_ 10", stats[7], epoch)
+    tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_all__maxDets_100", stats[8], epoch)
+    tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_small__maxDets_100", stats[9], epoch)
+    tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_medium__maxDets_100", stats[10], epoch)
+    tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_ large__maxDets_100", stats[11], epoch)
 
 
 if __name__ == '__main__':
