@@ -118,13 +118,4 @@ def main():
                     pass
 
 if __name__ == "__main__":
-    
     main()
-
-"""
-scp -r visum@104.155.5.116:/home/visum/mody/models_day2/plots_epoch_12 .
-pass = 52361f61
-
-
-python plot.py -d ../../../visum_data/test/ -a ../../../visum_data/test/annotation.csv -p ../../../code/competition/plots_vanya_12/predictions-epoch-12.csv -s ./plots_epochs_12
-"""
