@@ -28,7 +28,7 @@ def main():
     REJECT_THR = 0.5  # rejection threshold to classify as unknown class (naive approach!)
 
     # Load datasets
-    test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=create_transform(False))
+    test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=create_transform())
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 

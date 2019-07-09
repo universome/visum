@@ -14,6 +14,18 @@ from src.utils.visum_utils import VisumData
 from src.utils.transforms import create_transform
 
 
+DEFAULT_AUGMENTATIONS = (
+    'HorizontalFlip',
+    # 'Blur',
+    # 'RandomCrop',
+    # 'RandomGamma',
+    # 'ShiftScaleRotate',
+    # 'HueSaturationValue',
+    # 'RGBShift',
+    # 'RandomSunFlare',
+)
+
+
 def main():
     parser = argparse.ArgumentParser(description='VISUM 2019 competition - baseline training script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--data_path', default='/home/master/dataset/train', metavar='', help='data directory path')
@@ -22,6 +34,7 @@ def main():
     parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
     parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
+    parser.add_argument('--augmentations', default=DEFAULT_AUGMENTATIONS, type=str, help='List of augmentations names to use', nargs='+')
     args = vars(parser.parse_args())
 
     if not os.path.isdir(args['checkpoints_path']):
@@ -29,6 +42,8 @@ def main():
 
     full_checkpoint_path = os.path.join(os.getcwd(), args["checkpoints_path"])
     print(f'Checkpoints will be saved to {full_checkpoint_path}')
+
+    print(f'The following augmentations will be used for training: {args["augmentations"]}')
 
     backbone = torchvision.models.mobilenet_v2(pretrained=True).features
     backbone.out_channels = 1280
@@ -50,8 +65,8 @@ def main():
     # print(model)
 
     # use our dataset and defined transformations
-    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(train=True))
-    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform(train=False))
+    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(DEFAULT_AUGMENTATIONS))
+    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform())
 
     # split the dataset in train and test set
     torch.manual_seed(1)
