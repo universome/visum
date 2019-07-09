@@ -32,8 +32,9 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, tb
 
         loss_dict = model(images, targets)
 
-        # DBG
-        print(loss_dict)
+        for loss_name in loss_dict:
+            tb_writer.add_scalar(f'Train/{loss_name}', loss_dict[loss_name])
+        tb_writer.add_scalar('Learning rate', optimizer.param_groups[0]['lr'])
 
         losses = sum(loss for loss in loss_dict.values()) / accumulation_factor
 
@@ -59,9 +60,6 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, tb
 
         metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
-
-        tb_writer.add_scalar('Train/loss', loss_value)
-        tb_writer.add_scalar('Learning rate', optimizer.param_groups[0]['lr'])
 
     if batch_idx % accumulation_factor != accumulation_factor - 1:
         optimizer.step()
