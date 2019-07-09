@@ -100,7 +100,7 @@ def parse_cli_args():
 
 
 def build_model(args):
-    backbone = torchvision.models.mobilenet_v2(pretrained=True).features
+    backbone = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True).features
     backbone.out_channels = 1280
 
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
