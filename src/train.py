@@ -11,6 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 
+from src import detection
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
 from src.utils.visum_utils import VisumData
@@ -103,7 +104,7 @@ def parse_cli_args():
 
 
 def build_model(args):
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(num_classes=10, pretrained_backbone=True)
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=10, pretrained_backbone=True)
 
     return model
 
