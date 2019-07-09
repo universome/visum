@@ -16,3 +16,4 @@
 - [x] TensorboardX: training progress, learning rate, val metrics, etc
 - [ ] Test-time augmentation
 - [ ] Normal ensembling; ensembling models from previous epochs
+- [ ] Add grayscale IR images to train procedure
