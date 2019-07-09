@@ -97,7 +97,7 @@ def parse_cli_args():
         os.makedirs(args['log_dir'], exist_ok=True)
 
     logger.info(f'Checkpoints will be saved to {os.path.join(os.getcwd(), args["checkpoints_path"])}')
-    logger.info(f'Tensorboard logs will be save to {args["log_dir"]}')
+    logger.info(f'Tensorboard logs will be save to {os.path.join(os.getcwd(), args["log_dir"])}')
 
     return args
 
