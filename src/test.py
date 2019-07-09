@@ -1,4 +1,4 @@
-import sys; sys.path.append('.')
+import sys; sys.path.extend(['.'])
 import os
 import argparse
 import csv
@@ -23,7 +23,7 @@ from src.train import build_model
 def main():
     parser = argparse.ArgumentParser(description='VISUM 2019 competition - baseline inference script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--data_path', default='/home/master/dataset/test', metavar='', help='test data directory path')
-    parser.add_argument('-m', '--model_path', default='./baseline.pth', metavar='', help='model file')
+    parser.add_argument('-m', '--model_path', default='./model.pth', metavar='', help='model file')
     parser.add_argument('-o', '--output', default='./predictions.csv', metavar='', help='output CSV file name')
     args = vars(parser.parse_args())
 
