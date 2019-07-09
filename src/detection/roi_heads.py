@@ -9,6 +9,7 @@ from torchvision.ops import roi_align
 
 from src.constants import NUM_CLASSES
 from . import _utils as det_utils
+from src.constants import SMOOTHED_MAX_PROB
 
 
 def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
@@ -56,12 +57,11 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
 
 def indices_to_smooth(indices):
     # p: Tensor of shape [N_samples]
-    smoothed_max_prob = 1.0
-    remaining_prob = 1.0 - smoothed_max_prob
+    remaining_prob = 1.0 - SMOOTHED_MAX_PROB
     smoothing_value = remaining_prob / (NUM_CLASSES - 1)
     filled_probs_no_peak = torch.full((NUM_CLASSES,), smoothing_value).to(indices.device)
     smoothed_prob = filled_probs_no_peak.repeat(indices.size(0), 1)
-    smoothed_prob.scatter_(1, indices.unsqueeze(1).type(torch.int64), smoothed_max_prob)
+    smoothed_prob.scatter_(1, indices.unsqueeze(1).type(torch.int64), SMOOTHED_MAX_PROB)
     return smoothed_prob
 
 
