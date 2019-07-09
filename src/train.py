@@ -14,19 +14,7 @@ from torchvision.models.detection.rpn import AnchorGenerator
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
 from src.utils.visum_utils import VisumData
-from src.utils.transforms import create_transform
-
-
-DEFAULT_AUGMENTATIONS = (
-    'HorizontalFlip',
-    # 'Blur',
-    # 'RandomCrop',
-    # 'RandomGamma',
-    # 'ShiftScaleRotate',
-    # 'HueSaturationValue',
-    # 'RGBShift',
-    # 'RandomSunFlare',
-)
+from src.utils.transforms import create_transform, TRAIN_AUGMENTATIONS
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +26,7 @@ def main():
     model = build_model(args)
 
     # use our dataset and defined transformations
-    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(DEFAULT_AUGMENTATIONS))
+    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS))
     dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform())
 
     # split the dataset in train and test set
