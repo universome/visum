@@ -16,6 +16,7 @@ from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
 from src.utils.visum_utils import VisumData
 from src.utils.transforms import create_transform, TRAIN_AUGMENTATIONS
+from src.constants import NUM_CLASSES
 
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ def parse_cli_args():
 
 
 def build_model(args):
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=10, pretrained_backbone=True)
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
 
     return model
 
