@@ -3,6 +3,7 @@ import cv2
 import pdb
 import urlopen
 import traceback
+import argparse
 import urllib
 import tqdm
 import numpy as np
@@ -10,9 +11,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 BOX_COLOR_TRUE = (0, 255, 0)
-BOX_COLOR_PRED = (255, 0, 0)
-
 TEXT_COLOR_TRUE = (0, 0, 0)
+BOX_COLOR_PRED = (255, 0, 0)
 TEXT_COLOR_PRED = (255, 255, 255)
 
 category_id_to_name = {
@@ -83,29 +83,26 @@ def visualize(annotations_true, annotations_pred, category_id_to_name, save_dir=
         plt.savefig('{0}/{1}'.format(save_dir, annotations_pred['image_name'].split('.')[0] + '.png'), bbox_inches = 'tight',pad_inches = 0, format='png')
     plt.close()
 
-if __name__ == "__main__":
-    
-    if (1):
-        csv_file_true = '../../../visum_data/test/annotation.csv'
-        csv_file_pred = '../../../code/competition/predictions/model__frcnn_resnet__iter50.csv'
-        dir_images    = '../../../visum_data/test'
-        plot_dir      = './plots_50'
-        torch_seed    = 1
-    else:
-        csv_file_true = '/home/master/dataset/train/annotation.csv' 
-        csv_file_pred = '/home/visum/mody/models/model__frcnn_resnet__iter50.csv'
-        dir_images    = '/home/master/dataset/test'
-        plot_dir      = './plots_50'
+def main():
 
     if (1):
-        annotations_images_true = getannotations(csv_file_true, dir_images)
-        annotations_images_pred = getannotations(csv_file_pred, dir_images)
-        print (' - [Plot] Finished reading annotations - true :  {0}'.format(csv_file_true))
-        print (' - [Plot] Finished reading annotations - pred :  {0}'.format(csv_file_pred))
-        print (' - [Plot] Saving in {0}'.format(plot_dir))
-        if len(plot_dir):
-            if not os.path.isdir(plot_dir):
-                os.mkdir(plot_dir)
+        parser = argparse.ArgumentParser(description='VISUM 2019 competition - plotting script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('-d', '--path_data', default='/home/master/dataset/test', metavar='', help='')
+        parser.add_argument('-a', '--path_annotations', default='/home/master/dataset/test/annotation.csv', metavar='', help='')
+        parser.add_argument('-p', '--path_predictions', default='/home/visum/mody/models_day2/predictions-epoch-12.csv', metavar='', help='model file')
+        parser.add_argument('-s', '--path_save', default='', metavar='', help='output CSV file name')
+        args = vars(parser.parse_args())
+
+    if (1):
+        annotations_images_true = getannotations(args['path_annotations'], args['path_data'])
+        annotations_images_pred = getannotations(args['path_predictions'], args['path_data'])
+        print (' - [Plot] Finished reading annotations - true :  {0}'.format(args['path_annotations']))
+        print (' - [Plot] Finished reading annotations - pred :  {0}'.format(args['path_predictions']))
+        print (' - [Plot] Saving in {0}'.format(args['path_save']))
+        if len(args['path_save']):
+            if not os.path.isdir(args['path_save']):
+                print (' - [Plot] Path does not exist : ', args['path_save'])
+                os.mkdir(args['path_save'])
                     
 
     if (1):
@@ -115,9 +112,19 @@ if __name__ == "__main__":
                     pbar.update(1)
                     annotations_image_true = annotations_images_true[image]
                     annotations_image_pred = annotations_images_pred[image]
-                    visualize(annotations_image_true, annotations_image_pred, category_id_to_name, save_dir=plot_dir)
-                    if i > 10:
-                        break
+                    visualize(annotations_image_true, annotations_image_pred, category_id_to_name, save_dir=args['path_save'])
                 except:
                     traceback.print_exc()
                     pass
+
+if __name__ == "__main__":
+    
+    main()
+
+"""
+scp -r visum@104.155.5.116:/home/visum/mody/models_day2/plots_epoch_12 .
+pass = 52361f61
+
+
+python plot.py -d ../../../visum_data/test/ -a ../../../visum_data/test/annotation.csv -p ../../../code/competition/plots_vanya_12/predictions-epoch-12.csv -s ./plots_epochs_12
+"""
