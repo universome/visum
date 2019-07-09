@@ -43,8 +43,6 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, tb
             print(loss_dict_reduced)
             sys.exit(1)
 
-        tb_writer.add_scalar('Train/loss', loss_value)
-
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
@@ -54,6 +52,10 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, tb
 
         metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+
+        tb_writer.add_scalar('Train/loss', loss_value)
+        tb_writer.add_scalar('Learning rate', optimizer.param_groups[0]['lr'])
+
     return loss_value
 
 
@@ -96,4 +98,5 @@ def evaluate(model, data_loader, device):
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
     torch.set_num_threads(n_threads)
+
     return coco_evaluator

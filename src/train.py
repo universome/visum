@@ -110,13 +110,32 @@ def main():
         train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=100, tb_writer=tb_writer)
         # update the learning rate
         lr_scheduler.step()
-        # evaluate on the test dataset
-        evaluate(model, data_loader_val, device=device)
+
+        # evaluate on the val dataset
+        coco_evaluator = evaluate(model, data_loader_val, device=device)
+        log_metrics(coco_evaluator, tb_writer)
 
         logger.info(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
         torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
 
     torch.save(model, args['model_path'])
+
+
+def log_metrics(coco_evaluator, tb_writer):
+    stats = coco_evaluator.coco_eval['bbox'].stats
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[0])
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ]", stats[1])
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ]", stats[2])
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[3])
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[4])
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[5])
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ]", stats[6])
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ]", stats[7])
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[8])
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[9])
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[10])
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[11])
+
 
 if __name__ == '__main__':
     main()
