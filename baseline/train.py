@@ -17,7 +17,6 @@ def main():
     parser.add_argument('--epochs', default=50, type=int, metavar='', help='number of epochs')
     parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
-    parser.add_argument('--batch-acc', default=1, type=int, metavar='', help='Number of batches accumulated for the parameters update')
     args = vars(parser.parse_args())
 
     # Data augmentation
@@ -84,13 +83,7 @@ def main():
 
     for epoch in range(args['epochs']):
         # train for one epoch, printing every 10 iterations
-        epoch_loss = train_one_epoch(model,
-                                     optimizer,
-                                     data_loader,
-                                     device,
-                                     epoch,
-                                     print_freq=10,
-                                     accumulation_factor=args['batch_acc'])
+        epoch_loss = train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset

@@ -1,6 +1,7 @@
 import os
 import argparse
 import csv
+
 import numpy as np
 import torch
 from PIL import Image
@@ -8,11 +9,12 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-from utils_.nms import nms
-from utils_ import utils
-from utils_ import transforms as T
-from utils_.engine import train_one_epoch, evaluate
-from utils_.visum_utils import VisumData
+
+from src.utils.nms import nms
+from src.utils import utils
+from src.utils.transforms import create_transform
+from src.utils.engine import train_one_epoch, evaluate
+from src.utils.visum_utils import VisumData
 
 
 def main():
@@ -25,18 +27,8 @@ def main():
     NMS_THR = 0.1  # non maximum suppresion threshold
     REJECT_THR = 0.5  # rejection threshold to classify as unknown class (naive approach!)
 
-    def get_transform(train):
-        transforms = []
-        # converts the image, a PIL image, into a PyTorch Tensor
-        transforms.append(T.ToTensor())
-        if train:
-            # during training, randomly flip the training images
-            # and ground-truth for data augmentation
-            transforms.append(T.RandomHorizontalFlip(0.5))
-        return T.Compose(transforms)
-
     # Load datasets
-    test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=get_transform(False))
+    test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=create_transform())
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
