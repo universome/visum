@@ -57,7 +57,8 @@ def main():
 
     for epoch in range(args['epochs']):
         # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=100, tb_writer=tb_writer)
+        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=100, tb_writer=tb_writer,
+                        accumulation_factor=args['batch_acc'])
         # update the learning rate
         lr_scheduler.step()
 
@@ -82,6 +83,8 @@ def parse_cli_args():
     parser.add_argument('--log_dir', type=str, help='Directory where Tensorboard logs are going to be saved', default='tensorboard-logs')
     parser.add_argument('--exclude_classes', type=int, nargs='+', default=[],
         help='Choose, which class idx (0-10) should be excluded during training and added to the validation as a new class.')
+    parser.add_argument('--batch-acc', default=1, type=int, metavar='',
+                        help='Number of batches accumulated for the parameters update')
 
     args = vars(parser.parse_args())
 
