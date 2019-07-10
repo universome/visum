@@ -42,7 +42,6 @@ def create_transform(augmentations:Collection[str]=None):
         transforms_to_apply.append(albu_transform)
 
     transforms_to_apply.append(ToTensor())
-    print (transforms_to_apply)
     return Compose(transforms_to_apply)
 
 
@@ -78,5 +77,5 @@ def convert_to_albu_format(image, target):
 def convert_from_albu_format(albu_result):
     return albu_result["image"], {
         "boxes": torch.Tensor(albu_result["bboxes"]),
-        "labels": torch.Tensor(albu_result["labels"]) #.float()
+        "labels": torch.Tensor(albu_result["labels"])
     }
