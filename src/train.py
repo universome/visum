@@ -70,11 +70,11 @@ def main():
         lr_scheduler.step()
 
         # evaluate the model
-        train_evaluator = evaluate(model, data_loader, device=device)
-        log_metrics(train_evaluator, tb_writer, epoch, 'train')
+        # train_evaluator = evaluate(model, data_loader, device=device)
+        # log_metrics(train_evaluator, tb_writer, epoch, 'TRAIN')
 
         val_evaluator = evaluate(model, data_loader_val, device=device)
-        log_metrics(val_evaluator, tb_writer, epoch, 'val')
+        log_metrics(val_evaluator, tb_writer, epoch, 'VAL')
 
         logger.info(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
         torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
@@ -86,7 +86,7 @@ def parse_cli_args():
     parser = argparse.ArgumentParser(description='VISUM 2019 competition - baseline training script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--data_path', default='/home/master/dataset/train', metavar='', help='data directory path')
     parser.add_argument('-m', '--model_path', default='./baseline.pth', metavar='', help='model file (output of training)')
-    parser.add_argument('--epochs', default=50, type=int, metavar='', help='number of epochs')
+    parser.add_argument('--epochs', default=100, type=int, metavar='', help='number of epochs')
     parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
     parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
@@ -127,17 +127,17 @@ def build_model(num_clases:int):
 def log_metrics(coco_evaluator, tb_writer, epoch, mode:str):
     stats = coco_evaluator.coco_eval['bbox'].stats
     tb_writer.add_scalar("AP__IoU_0_50_0_95__area_all__maxDets_100/{mode}", stats[0], epoch)
-    # tb_writer.add_scalar("VAL/AP__IoU_0_50__area_all__maxDets_100", stats[1], epoch)
-    # tb_writer.add_scalar("VAL/AP__IoU_0_75__area_all__maxDets_100", stats[2], epoch)
-    # tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_small__maxDets_100", stats[3], epoch)
-    # tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_medium__maxDets_100", stats[4], epoch)
-    # tb_writer.add_scalar("VAL/AP__IoU_0_50_0_95__area_ large__maxDets_100", stats[5], epoch)
-    # tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_all__maxDets_  1", stats[6], epoch)
-    # tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_all__maxDets_ 10", stats[7], epoch)
-    # tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_all__maxDets_100", stats[8], epoch)
-    # tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_small__maxDets_100", stats[9], epoch)
-    # tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_medium__maxDets_100", stats[10], epoch)
-    # tb_writer.add_scalar("VAL/AR__IoU_0_50_0_95__area_ large__maxDets_100", stats[11], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50__area_all__maxDets_100", stats[1], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_75__area_all__maxDets_100", stats[2], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_small__maxDets_100", stats[3], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_medium__maxDets_100", stats[4], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_ large__maxDets_100", stats[5], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_all__maxDets_  1", stats[6], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_all__maxDets_ 10", stats[7], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_all__maxDets_100", stats[8], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_small__maxDets_100", stats[9], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_medium__maxDets_100", stats[10], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_ large__maxDets_100", stats[11], epoch)
 
 
 def fix_random_seed(seed=42):

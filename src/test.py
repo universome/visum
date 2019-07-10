@@ -27,7 +27,7 @@ def main():
 
     # Loading model
     model = build_model(NUM_CLASSES - args['num_classes_excluded']).to(device)
-    # model.load_state_dict(torch.load(args['model_path']))
+    model.load_state_dict(torch.load(args['model_path']))
 
     # Loading data
     test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=create_transform())

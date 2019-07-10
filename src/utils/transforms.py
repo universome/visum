@@ -27,7 +27,7 @@ TRAIN_AUGMENTATIONS = [
 
 # Data augmentation
 def create_transform(augmentations:Collection[str]=None):
-    transforms_to_apply = []
+    transforms_to_apply = [ToTensor()]
 
     if not augmentations is None:
         albu_transform = A.Compose(augmentations, bbox_params={
@@ -38,8 +38,6 @@ def create_transform(augmentations:Collection[str]=None):
         })
 
         transforms_to_apply.append(albu_transform)
-
-    transforms_to_apply.append(ToTensor())
 
     return Compose(transforms_to_apply)
 
