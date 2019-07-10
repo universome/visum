@@ -27,7 +27,7 @@ class VisumData(Dataset):
     }
 
     def __init__(self, path, modality='rgb', mode='train', transforms=None,
-                 exclude_classes:Collection[int]=()):
+                 excluded_classes:Collection[int]=()):
 
         self.path = path
         self.transforms = transforms
@@ -42,7 +42,7 @@ class VisumData(Dataset):
 
             with open(os.path.join(self.path, 'annotation.csv')) as csv_file:
                 for row in csv.reader(csv_file, delimiter=','):
-                    if int(row[5]) in exclude_classes: continue
+                    if int(row[5]) in excluded_classes: continue
 
                     file_name = row[0]
                     obj = [float(value) for value in row[1:5]]
@@ -58,8 +58,8 @@ class VisumData(Dataset):
 
             logger.debug(f'We have the following objects distributions: {self.compute_class_distribution()}')
 
-        if len(exclude_classes) != 0:
-            idx_remap = get_idx_remap(exclude_classes)
+        if len(excluded_classes) != 0:
+            idx_remap = get_idx_remap(excluded_classes)
             self.annotations = {f: remap_classes(self.annotations[f], idx_remap) for f in self.annotations}
             logger.debug(f'Class indices were remapped, because some of them are exluded: {list(range(10))} -> {idx_remap}')
             logger.debug(f'Now we have the following class distribution: {self.compute_class_distribution()}')

@@ -30,12 +30,12 @@ def main():
     fix_random_seed(RANDOM_SEED)
 
     args = parse_cli_args()
-    model = build_model(NUM_CLASSES - len(args['exclude_classes']))
+    model = build_model(NUM_CLASSES - len(args['excluded_classes']))
 
-    # exclude_classes argument is passed in both training and validation,
+    # excluded_classes argument is passed in both training and validation,
     # because validation during training does not bother with "new class" prediction
-    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS), exclude_classes=args['exclude_classes'])
-    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform(), exclude_classes=args['exclude_classes'])
+    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS), excluded_classes=args['excluded_classes'])
+    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform(), excluded_classes=args['excluded_classes'])
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()
@@ -91,7 +91,7 @@ def parse_cli_args():
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
     parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
     parser.add_argument('--log_dir', type=str, help='Directory where Tensorboard logs are going to be saved', default='tensorboard-logs')
-    parser.add_argument('--exclude_classes', type=int, nargs='+', default=[],
+    parser.add_argument('--excluded_classes', type=int, nargs='+', default=[],
         help='Choose, which class idx (0-9) should be excluded during training and added to the validation as a new class.')
     parser.add_argument('--batch-acc', default=1, type=int, metavar='',
                         help='Number of batches accumulated for the parameters update')

@@ -80,7 +80,7 @@ def parse_args():
     parser.add_argument('-m', '--model_path', default='./model.pth', metavar='', help='model file')
     parser.add_argument('-o', '--output', default='./predictions.csv', metavar='', help='output CSV file name')
     parser.add_argument('--num_classes_excluded', default=0, type=int,
-        help='If you have trained your model with "--exclude_classes" argument, then you should pass how many there were.')
+        help='If you have trained your model with "--excluded_classes" argument, then you should pass how many there were.')
     parser.add_argument('--nms_threshold', type=float, default=0.1, help="Non Maximum Suppresion threshold")
     parser.add_argument('--reject_threshold', type=float, default=0.5,
         help="Rejection threshold to classify as unknown class (naive approach!)")
