@@ -1,7 +1,8 @@
-import sys; sys.path.append('.')
+import sys; sys.path.extend(['.'])
 import os
 import argparse
 import logging
+from datetime import datetime
 
 import torch
 import torch.utils.data
@@ -25,7 +26,7 @@ coloredlogs.install(level="DEBUG", logger=logger)
 
 def main():
     args = parse_cli_args()
-    model = build_model(args)
+    model = build_model()
 
     # use our dataset and defined transformations
     dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS))
@@ -55,7 +56,7 @@ def main():
                                 momentum=0.9, weight_decay=args['l2'])
 
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
-    tb_writer = SummaryWriter(log_dir=args['log_dir'])
+    tb_writer = SummaryWriter(log_dir=args['log_dir'], flush_secs=10)
 
     for epoch in range(args['epochs']):
         # train for one epoch, printing every 10 iterations
@@ -66,7 +67,8 @@ def main():
 
         # evaluate on the val dataset
         coco_evaluator = evaluate(model, data_loader_val, device=device)
-        log_metrics(coco_evaluator, tb_writer)
+        num_iters_done = (epoch + 1) * len(data_loader)
+        log_metrics(coco_evaluator, tb_writer, num_iters_done)
 
         logger.info(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
         torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
@@ -90,40 +92,45 @@ def parse_cli_args():
 
     args = vars(parser.parse_args())
 
+    exp_name = f'exp_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    logger.info(f'Current experiment name is {exp_name}')
+    args['checkpoints_path'] = os.path.join(os.getcwd(), args["checkpoints_path"], exp_name)
+    args['log_dir'] = os.path.join(os.getcwd(), args["log_dir"], exp_name)
+
     if not os.path.isdir(args['checkpoints_path']):
         logger.warn(f'Creating checkpoint directory: {args["checkpoints_path"]}')
         os.makedirs(args['checkpoints_path'], exist_ok=True)
 
     if not os.path.isdir(args['log_dir']):
-        logger.warn(f'Creating tensorboard logs directory: {args["checkpoints_path"]}')
+        logger.warn(f'Creating tensorboard logs directory: {args["log_dir"]}')
         os.makedirs(args['log_dir'], exist_ok=True)
 
-    logger.info(f'Checkpoints will be saved to {os.path.join(os.getcwd(), args["checkpoints_path"])}')
-    logger.info(f'Tensorboard logs will be save to {os.path.join(os.getcwd(), args["log_dir"])}')
+    logger.info(f'Checkpoints will be saved to {args["checkpoints_path"]}')
+    logger.info(f'Tensorboard logs will be save to {args["log_dir"]}')
 
     return args
 
 
-def build_model(args):
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
+def build_model():
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
 
     return model
 
 
-def log_metrics(coco_evaluator, tb_writer):
+def log_metrics(coco_evaluator, tb_writer, iteration):
     stats = coco_evaluator.coco_eval['bbox'].stats
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[0])
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ]", stats[1])
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ]", stats[2])
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[3])
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[4])
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[5])
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ]", stats[6])
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ]", stats[7])
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[8])
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[9])
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[10])
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[11])
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[0], iteration)
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ]", stats[1], iteration)
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ]", stats[2], iteration)
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[3], iteration)
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[4], iteration)
+    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[5], iteration)
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ]", stats[6], iteration)
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ]", stats[7], iteration)
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[8], iteration)
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[9], iteration)
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[10], iteration)
+    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[11], iteration)
 
 
 if __name__ == '__main__':
