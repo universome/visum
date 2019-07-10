@@ -6,6 +6,7 @@ import numpy as np
 import torchvision.transforms.functional as F
 import albumentations as A
 
+xmin = 120; xmax = 392; ymin = 291; ymax = 456; epsilon = 20
 
 TRAIN_AUGMENTATIONS = [
     A.HorizontalFlip(0.5),
@@ -21,7 +22,8 @@ TRAIN_AUGMENTATIONS = [
     A.RandomBrightnessContrast(p=0.3),
     A.RandomGamma(p=0.5),
     A.ShiftScaleRotate(p=0.5, shift_limit=0.03, rotate_limit=5, scale_limit=0.05),
-    A.JpegCompression(p=0.5)
+    A.JpegCompression(p=0.5),
+    A.Crop(x_min=xmin-epsilon, y_min=ymin-epsilon, x_max=xmax+epsilon, y_max=ymax+epsilon, p=1.0)
 ]
 
 
@@ -40,7 +42,7 @@ def create_transform(augmentations:Collection[str]=None):
         transforms_to_apply.append(albu_transform)
 
     transforms_to_apply.append(ToTensor())
-
+    print (transforms_to_apply)
     return Compose(transforms_to_apply)
 
 
@@ -76,5 +78,5 @@ def convert_to_albu_format(image, target):
 def convert_from_albu_format(albu_result):
     return albu_result["image"], {
         "boxes": torch.Tensor(albu_result["bboxes"]),
-        "labels": torch.Tensor(albu_result["labels"])
+        "labels": torch.Tensor(albu_result["labels"]) #.float()
     }
