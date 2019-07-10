@@ -57,9 +57,9 @@ def main():
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args['lr'],
-                                momentum=0.9, weight_decay=args['l2'])
+                                momentum=0.95, weight_decay=args['l2'])
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3333)
     tb_writer = SummaryWriter(log_dir=args['log_dir'], flush_secs=10)
 
     for epoch in range(args['epochs']):
