@@ -11,29 +11,41 @@ import coloredlogs
 logger = logging.getLogger(__name__)
 coloredlogs.install(level="DEBUG", logger=logger)
 
+"""
+To validate on unknown classes you should do the following:
+1. train with argument --exclude_classes
+2. test with argument --num_excluded_classes
+3. run this script by smth like this:
+    $ python src/utils/class_exclusion.py --results_dir=class_exclusion_results --excluded_classes 0 1
+4. manually evaluate the results for each class by running:
+    $ python src/evaluate.py -d class_exclusion_results/class_3 -p class_exclusion_results/class_3/predictions.csv
+"""
+
 
 def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:str, results_dir:str, excluded_classes:List[int]):
     annotations = read_annotations(annotations_path)
-    predictions = read_annotations(preds_path)
+    predictions = read_predictions(preds_path)
     idx_remap = get_idx_remap(excluded_classes)
     included_classes = [c for c in range(10) if not c in excluded_classes]
 
     for c in excluded_classes:
         allowed_classes = included_classes + [c]
+        curr_results_dir = os.path.join(results_dir, f'class_{c}')
+        os.makedirs(curr_results_dir, exist_ok=True)
 
         # Generating annotations
         # The logic is simple: just remap all excluded classes to -1
         # And remap non-excluded classes to their class indicies, used during training
-        curr_annotations = annotations[annotations.class_idx.isin(allowed_classes)]
-        curr_annotations['class_idx'] = curr_annotations['class_idx'].map(lambda x: idx_remap[x])
-        curr_annotations.to_csv(f'{results_dir}/annotations_for_new_class_{c}.csv', index=None, header=None)
+        curr_annotations = annotations[annotations.class_idx.isin(allowed_classes)].copy()
+        curr_annotations['class_idx'] = curr_annotations.class_idx.map(lambda x: idx_remap[x])
+        curr_annotations.to_csv(f'{curr_results_dir}/annotation.csv', index=None, header=None)
 
         # We need to generate a subset predictions for each excluded class as a new class
         # so we do not have more files in predictions than in annotations
         allowed_files = annotations[annotations.class_idx.isin(allowed_classes)].filename.values
         allowed_files = set(allowed_files)
-        curr_predictions = predictions[predictions.filename.isin(allowed_files)]
-        curr_predictions.to_csv(f'{results_dir}/predictions_for_new_class_{c}.csv', index=None, header=None)
+        curr_predictions = predictions[predictions.filename.isin(allowed_files)].copy()
+        curr_predictions.to_csv(f'{curr_results_dir}/predictions.csv', index=None, header=None)
 
     print('Done!')
 
@@ -41,6 +53,9 @@ def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:s
 def read_annotations(path:str) -> pd.DataFrame:
     return pd.read_csv(path, header=None, names=['filename', 'xmin', 'ymin', 'xmax', 'ymax', 'class_idx'])
 
+
+def read_predictions(path:str) -> pd.DataFrame:
+    return pd.read_csv(path, header=None, names=['filename', 'xmin', 'ymin', 'xmax', 'ymax', 'class_idx', 'confidence'])
 
 def parse_args():
     parser = argparse.ArgumentParser(description='VISUM 2019 competition - baseline training script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -51,7 +66,7 @@ def parse_args():
     args = vars(parser.parse_args())
 
     if not os.path.isdir(args['results_dir']):
-        logger.warn(f'Creating results_dir directory: {args["log_dir"]}')
+        logger.warn(f'Creating results_dir directory: {args["results_dir"]}')
         os.makedirs(args['results_dir'], exist_ok=True)
 
     return args
