@@ -20,10 +20,18 @@ coloredlogs.install(level="DEBUG", logger=logger)
 class VisumData(Dataset):
     # During training our classes have the following idx
     # and evaluation just do not know about background class
-    class_names = {
-        -1: 'n.a.', 0: 'background', 1: 'book', 2: 'bottle', 3: 'box',
-        4: 'cellphone', 5: 'cosmetics', 6: 'glasses', 7: 'headphones',
-        8: 'keys', 9: 'wallet', 10: 'watch',
+    original_class_names = {
+        -1: 'n.a.',
+        0: 'book',
+        1: 'bottle',
+        2: 'box',
+        3: 'cellphone',
+        4: 'cosmetics',
+        5: 'glasses',
+        6: 'headphones',
+        7: 'keys',
+        8: 'wallet',
+        9: 'watch',
     }
 
     def __init__(self, path, modality='rgb', mode='train', transforms=None,
