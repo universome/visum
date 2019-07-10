@@ -288,7 +288,8 @@ model_urls = {
 
 
 def fasterrcnn_resnet50_fpn(pretrained=False, progress=True,
-                            num_classes=91, pretrained_backbone=True, **kwargs):
+                            num_classes=91, pretrained_backbone=True,
+                            discard_classification_head=True, **kwargs):
     """
     Constructs a Faster R-CNN model with a ResNet-50-FPN backbone.
 
@@ -333,5 +334,26 @@ def fasterrcnn_resnet50_fpn(pretrained=False, progress=True,
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls['fasterrcnn_resnet50_fpn_coco'],
                                               progress=progress)
+        if discard_classification_head:
+            params_to_drop_from_load = set(['roi_heads.box_predictor.cls_score.weight',
+                                            'roi_heads.box_predictor.cls_score.bias',
+                                            'roi_heads.box_predictor.bbox_pred.weight',
+                                            'roi_heads.box_predictor.bbox_pred.bias'])
+            filtered_dict = {}
+            for k, v in state_dict.items():
+                if k not in params_to_drop_from_load:
+                    filtered_dict[k] = v
+                else:
+                    shape = list(v.shape)
+                    shape[0] = int(shape[0] / 91 * num_classes)
+                    if k.endswith('weight'):
+                        filtered_dict[k] = torch.randn(shape) * v.std()
+                    else:
+                        filtered_dict[k] = torch.zeros(shape)
+
+            state_dict = filtered_dict
+
         model.load_state_dict(state_dict)
     return model
+
+

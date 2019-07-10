@@ -118,8 +118,8 @@ def parse_cli_args():
     return args
 
 
-def build_model(num_clases:int):
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=num_clases, pretrained_backbone=True)
+def build_model(num_classes:int):
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=num_classes, pretrained=True)
 
     return model
 
