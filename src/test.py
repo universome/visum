@@ -26,8 +26,8 @@ def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # Loading model
-    model = build_model(NUM_CLASSES - len(args['num_classes_excluded'])).to(device)
-    model.load_state_dict(torch.load(args['model_path']))
+    model = build_model(NUM_CLASSES - args['num_classes_excluded']).to(device)
+    # model.load_state_dict(torch.load(args['model_path']))
 
     # Loading data
     test_data = VisumData(args['data_path'], 'rgb', mode='test', transforms=create_transform())
@@ -50,6 +50,11 @@ def main():
         boxes = np.array(prediction[0]['boxes'].cpu())
         labels = list(prediction[0]['labels'].cpu())
         scores = list(prediction[0]['scores'].cpu())
+
+        # We were training the model for 11 classes (including background)
+        # and the evaluation thing expects our model to have only 10 classes
+        # because it does not care about background class
+        labels = [l - 1 for l in labels]
 
         nms_boxes, nms_labels = nms(boxes, labels, NMS_THR)
 
