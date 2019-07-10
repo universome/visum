@@ -10,6 +10,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 import coloredlogs
 
+from src.utils.class_exclusion import get_idx_remap, remap_classes
+
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level="DEBUG", logger=logger)
@@ -48,39 +50,42 @@ class VisumData(Dataset):
                 4: 'cosmetics', 5: 'glasses', 6: 'headphones', 7: 'keys',
                 8: 'wallet', 9: 'watch', -1: 'n.a.'}
 
-        allowed_files_idx = set(f[3:] for f in self.annotations.keys())
+            # Here we keep all the files which we are allowed to use for training
+            self.allowed_files_idx = set(f[3:] for f in self.annotations.keys())
 
-        def check_file(file_name):
-            if self.modality in ['rgb', 'nir']:
-                # load only RGB or NIR images
-                return ('.jpg' in file_name) and (self.modality.upper() in file_name) and (file_name[3:] in allowed_files_idx)
-            elif self.modality == 'all':
-                # load all images (RGB and NIR)
-                return ('.jpg' in file_name) and (file_name[3:] in allowed_files_idx)
-            else:
-                raise NotImplementedError('Should never happen')
-
-        self.image_files = [f for f in os.listdir(path) if check_file(f)]
+        self.image_files = [f for f in os.listdir(path) if self.check_file(f)]
 
         logger.debug(f'Visum Dataset has initialized. It contains {len(self.image_files)} images')
         logger.debug(f'We have the following objects distributions: {self.compute_class_distribution()}')
 
         if len(exclude_classes) != 0:
-            old_class_indices = [i for i in range(10) if not i in exclude_classes]
-            new_class_indices = list(range(len(old_class_indices)))
-            idx_remap = {old_idx: new_idx for new_idx, old_idx in zip(new_class_indices, old_class_indices)}
-            self.annotations = {f: self.remap_objects(self.annotations[f], idx_remap) for f in self.annotations}
-            logger.debug(f'Class indices were remapped, because some of them are exluded: {old_class_indices} -> {new_class_indices}')
+            idx_remap = get_idx_remap(exclude_classes)
+            self.annotations = {f: remap_classes(self.annotations[f], idx_remap) for f in self.annotations}
+            logger.debug(f'Class indices were remapped, because some of them are exluded: {list(range(10))} -> {idx_remap}')
             logger.debug(f'Now we have the following class distribution: {self.compute_class_distribution()}')
+
+    def check_file(self, file_name:str) -> bool:
+        if self.modality in ['rgb', 'nir']:
+            # load only RGB or NIR images
+            return ('.jpg' in file_name) and (self.modality.upper() in file_name) and self.check_file_class(file_name)
+        elif self.modality == 'all':
+            # load all images (RGB and NIR)
+            return ('.jpg' in file_name) and self.check_file_class(file_name)
+        else:
+            raise NotImplementedError('Unknown modality')
+
+    def check_file_class(self, file_name:str) -> bool:
+        """Checks, if we can use this file or it was excluded from training (regarded as a new class)"""
+        if self.mode == 'train':
+            return file_name[3:] in self.allowed_files_idx
+        else:
+            return True # accept all classes
 
     def compute_class_distribution(self):
         counts = Counter(obj[4] for objects in self.annotations.values() for obj in objects)
         freqs = sorted(counts.most_common())
 
         return freqs
-
-    def remap_objects(self, objects_list:List[Tuple[float, float, float, float, int]], idx_remap:Dict[int, int]):
-        return [obj[:4] + [idx_remap[obj[4]]] for obj in objects_list]
 
     def __getitem__(self, idx):
         file_name = self.image_files[idx]
