@@ -52,6 +52,7 @@ def main():
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
+
     optimizer = torch.optim.SGD(params, lr=args['lr'],
                                 momentum=0.9, weight_decay=args['l2'])
 
@@ -112,7 +113,7 @@ def parse_cli_args():
 
 
 def build_model():
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained=True)
 
     return model
 
