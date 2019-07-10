@@ -14,10 +14,12 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 
+from src import detection
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
 from src.utils.visum_utils import VisumData
 from src.utils.transforms import create_transform, TRAIN_AUGMENTATIONS
+from src.constants import NUM_CLASSES
 
 
 logger = logging.getLogger(__name__)
@@ -115,8 +117,8 @@ def parse_cli_args():
     return args
 
 
-def build_model(num_classes:int=10):
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(num_classes=num_classes, pretrained_backbone=True)
+def build_model():
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
 
     return model
 
