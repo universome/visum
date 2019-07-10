@@ -8,7 +8,7 @@
 - [ ] crop objects from some examples and paste them to other images
 - [ ] remove extra parts of the image
 - [ ] class dropout, train "any-class" model `msh`
-- [ ] label smoothing `msh` 
+- [ ] label smoothing `msh`
 - [ ] check why new class prediction does not work: if it RPN or classification
 - [ ] Reduce images, because large part of an image is not useful at all
 - [ ] Try single-stage detectors
@@ -17,3 +17,7 @@
 - [ ] Test-time augmentation
 - [ ] Normal ensembling; ensembling models from previous epochs
 - [ ] Add grayscale IR images to train procedure
+- [ ] Check wtf is with the books, why we do not predict them
+- [ ] Generate visualizations after training
+- [ ] Train on the whole train set for final submission
+- [ ] Check that bbox sizes of Faster-RCNN fit our case
