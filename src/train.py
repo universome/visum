@@ -112,7 +112,7 @@ def parse_cli_args():
 
 
 def build_model():
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
 
     return model
 
