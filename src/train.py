@@ -19,7 +19,7 @@ from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
 from src.utils.visum_utils import VisumData
 from src.utils.transforms import create_transform, TRAIN_AUGMENTATIONS
-from src.constants import NUM_CLASSES
+from src.constants import NUM_CLASSES, RANDOM_SEED
 
 
 logger = logging.getLogger(__name__)
@@ -27,10 +27,10 @@ coloredlogs.install(level="DEBUG", logger=logger)
 
 
 def main():
-    fix_random_seed(42)
+    fix_random_seed(RANDOM_SEED)
 
     args = parse_cli_args()
-    model = build_model(10 - len(args['exclude_classes']))
+    model = build_model(NUM_CLASSES - len(args['exclude_classes']))
 
     # exclude_classes argument is passed in both training and validation,
     # because validation during training does not bother with "new class" prediction
@@ -71,9 +71,10 @@ def main():
 
         # evaluate the model
         train_evaluator = evaluate(model, data_loader, device=device)
+        log_metrics(train_evaluator, tb_writer, epoch, 'train')
+
         val_evaluator = evaluate(model, data_loader_val, device=device)
         log_metrics(val_evaluator, tb_writer, epoch, 'val')
-        log_metrics(train_evaluator, tb_writer, epoch, 'train')
 
         logger.info(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
         torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
@@ -117,8 +118,8 @@ def parse_cli_args():
     return args
 
 
-def build_model():
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained_backbone=True)
+def build_model(num_clases:int):
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=num_clases, pretrained_backbone=True)
 
     return model
 

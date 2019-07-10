@@ -18,6 +18,7 @@ from src.utils.transforms import create_transform
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils.visum_utils import VisumData
 from src.train import build_model
+from src.constants import NUM_CLASSES
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # Loading model
-    model = build_model(10 - len(args['num_classes_excluded'])).to(device)
+    model = build_model(NUM_CLASSES - len(args['num_classes_excluded'])).to(device)
     model.load_state_dict(torch.load(args['model_path']))
 
     # Loading data
