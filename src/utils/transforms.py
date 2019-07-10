@@ -27,7 +27,7 @@ TRAIN_AUGMENTATIONS = [
 
 # Data augmentation
 def create_transform(augmentations:Collection[str]=None):
-    transforms_to_apply = []
+    transforms_to_apply = [ToTensor()]
 
     if not augmentations is None:
         albu_transform = A.Compose(augmentations, bbox_params={
@@ -38,8 +38,6 @@ def create_transform(augmentations:Collection[str]=None):
         })
 
         transforms_to_apply.append(albu_transform)
-
-    transforms_to_apply.append(ToTensor())
 
     return Compose(transforms_to_apply)
 
@@ -66,7 +64,7 @@ class ToTensor(object):
         return F.to_tensor(image), target
 
 
-def convert_to_albu_format(image, target):
+def get_input_for_albumentations(image, target):
     return {
         "image": np.array(image),
         "bboxes": target["boxes"],
@@ -74,8 +72,12 @@ def convert_to_albu_format(image, target):
     }
 
 
-def convert_from_albu_format(albu_result):
+def merge_albu_result_with_target(albu_result, target):
     return albu_result["image"], {
         "boxes": torch.Tensor(albu_result["bboxes"]),
-        "labels": torch.Tensor(albu_result["labels"])
+        "labels": torch.Tensor(albu_result["labels"]),
+        "image_id": target["image_id"],
+
+        # TODO: actually, area could change after transformations, but let's hope that it didn't
+        "area": target["area"]
     }

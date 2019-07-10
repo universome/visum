@@ -1,5 +1,6 @@
 import sys; sys.path.extend(['.'])
 import os
+import random
 import argparse
 import logging
 from datetime import datetime
@@ -8,6 +9,7 @@ import torch
 import torch.utils.data
 import torchvision
 import coloredlogs
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
@@ -17,7 +19,7 @@ from src.utils.engine import train_one_epoch, evaluate
 from src.utils import utils
 from src.utils.visum_utils import VisumData
 from src.utils.transforms import create_transform, TRAIN_AUGMENTATIONS
-from src.constants import NUM_CLASSES
+from src.constants import NUM_CLASSES, RANDOM_SEED
 
 
 logger = logging.getLogger(__name__)
@@ -25,18 +27,20 @@ coloredlogs.install(level="DEBUG", logger=logger)
 
 
 def main():
-    args = parse_cli_args()
-    model = build_model()
+    fix_random_seed(RANDOM_SEED)
 
-    # use our dataset and defined transformations
-    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS))
-    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform())
+    args = parse_cli_args()
+    model = build_model(NUM_CLASSES - len(args['excluded_classes']))
+
+    # excluded_classes argument is passed in both training and validation,
+    # because validation during training does not bother with "new class" prediction
+    dataset = VisumData(args['data_path'], modality='rgb', transforms=create_transform(TRAIN_AUGMENTATIONS), excluded_classes=args['excluded_classes'])
+    dataset_val = VisumData(args['data_path'], modality='rgb', transforms=create_transform(), excluded_classes=args['excluded_classes'])
 
     # split the dataset in train and test set
-    torch.manual_seed(1)
     indices = torch.randperm(len(dataset)).tolist()
-    dataset = torch.utils.data.Subset(dataset, indices[:-100])
-    dataset_val = torch.utils.data.Subset(dataset_val, indices[-100:])
+    dataset = torch.utils.data.Subset(dataset, indices[:-args['val_set_size']])
+    dataset_val = torch.utils.data.Subset(dataset_val, indices[-args['val_set_size']:])
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
@@ -52,7 +56,6 @@ def main():
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
-
     optimizer = torch.optim.SGD(params, lr=args['lr'],
                                 momentum=0.9, weight_decay=args['l2'])
 
@@ -66,30 +69,33 @@ def main():
         # update the learning rate
         lr_scheduler.step()
 
-        # evaluate on the val dataset
-        coco_evaluator = evaluate(model, data_loader_val, device=device)
-        num_iters_done = (epoch + 1) * len(data_loader)
-        log_metrics(coco_evaluator, tb_writer, num_iters_done)
+        # evaluate the model
+        # train_evaluator = evaluate(model, data_loader, device=device)
+        # log_metrics(train_evaluator, tb_writer, epoch, 'TRAIN')
+
+        val_evaluator = evaluate(model, data_loader_val, device=device)
+        log_metrics(val_evaluator, tb_writer, epoch, 'VAL')
 
         logger.info(f'Saving the model to {args["checkpoints_path"]}/epoch-{epoch}.pth')
         torch.save(model.state_dict(), f'{args["checkpoints_path"]}/epoch-{epoch}.pth')
 
-    torch.save(model, args['model_path'])
+    torch.save(model.state_dict(), args['model_path'])
 
 
 def parse_cli_args():
     parser = argparse.ArgumentParser(description='VISUM 2019 competition - baseline training script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--data_path', default='/home/master/dataset/train', metavar='', help='data directory path')
     parser.add_argument('-m', '--model_path', default='./baseline.pth', metavar='', help='model file (output of training)')
-    parser.add_argument('--epochs', default=50, type=int, metavar='', help='number of epochs')
+    parser.add_argument('--epochs', default=100, type=int, metavar='', help='number of epochs')
     parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
     parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
     parser.add_argument('--log_dir', type=str, help='Directory where Tensorboard logs are going to be saved', default='tensorboard-logs')
-    parser.add_argument('--exclude_classes', type=int, nargs='+', default=[],
-        help='Choose, which class idx (0-10) should be excluded during training and added to the validation as a new class.')
+    parser.add_argument('--excluded_classes', type=int, nargs='+', default=[],
+        help='Choose, which class idx (0-9) should be excluded during training and added to the validation as a new class.')
     parser.add_argument('--batch-acc', default=1, type=int, metavar='',
                         help='Number of batches accumulated for the parameters update')
+    parser.add_argument('--val_set_size', default=100, type=int, help='Number of objects to use in validation')
 
     args = vars(parser.parse_args())
 
@@ -112,26 +118,33 @@ def parse_cli_args():
     return args
 
 
-def build_model():
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained=True)
+def build_model(num_classes:int):
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=num_classes, pretrained=True)
 
     return model
 
 
-def log_metrics(coco_evaluator, tb_writer, iteration):
+def log_metrics(coco_evaluator, tb_writer, epoch, mode:str):
     stats = coco_evaluator.coco_eval['bbox'].stats
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[0], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ]", stats[1], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ]", stats[2], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[3], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[4], iteration)
-    tb_writer.add_scalar("VAL/Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[5], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ]", stats[6], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ]", stats[7], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]", stats[8], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]", stats[9], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]", stats[10], iteration)
-    tb_writer.add_scalar("VAL/Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]", stats[11], iteration)
+    tb_writer.add_scalar("AP__IoU_0_50_0_95__area_all__maxDets_100/{mode}", stats[0], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50__area_all__maxDets_100", stats[1], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_75__area_all__maxDets_100", stats[2], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_small__maxDets_100", stats[3], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_medium__maxDets_100", stats[4], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_ large__maxDets_100", stats[5], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_all__maxDets_  1", stats[6], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_all__maxDets_ 10", stats[7], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_all__maxDets_100", stats[8], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_small__maxDets_100", stats[9], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_medium__maxDets_100", stats[10], epoch)
+    tb_writer.add_scalar(f"OTHER/{mode}/AR__IoU_0_50_0_95__area_ large__maxDets_100", stats[11], epoch)
+
+
+def fix_random_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 if __name__ == '__main__':

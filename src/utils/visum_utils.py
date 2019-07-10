@@ -1,14 +1,34 @@
 import os
+import csv
+from typing import Collection, Dict, List, Tuple
+from collections import Counter
+import logging
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 from PIL import Image
-from visdom import Visdom
-import csv
+import coloredlogs
+
+from src.utils.class_exclusion import get_idx_remap, remap_classes
+
+
+logger = logging.getLogger(__name__)
+coloredlogs.install(level="DEBUG", logger=logger)
 
 
 class VisumData(Dataset):
-    def __init__(self, path, modality='all', mode='train', transforms=None):
+    # During training our classes have the following idx
+    # and evaluation just do not know about background class
+    class_names = {
+        -1: 'n.a.', 0: 'background', 1: 'book', 2: 'bottle', 3: 'box',
+        4: 'cellphone', 5: 'cosmetics', 6: 'glasses', 7: 'headphones',
+        8: 'keys', 9: 'wallet', 10: 'watch',
+    }
+
+    def __init__(self, path, modality='rgb', mode='train', transforms=None,
+                 excluded_classes:Collection[int]=()):
+
         self.path = path
         self.transforms = transforms
         self.mode = mode
@@ -17,15 +37,13 @@ class VisumData(Dataset):
             'modality should be on of the following: \'rgb\', \'nir\', \'all\''
         self.modality = modality
 
-        if self.modality in ['rgb', 'nir']:  # load only RGB or NIR images
-            self.image_files = [f for f in os.listdir(path) if ('.jpg' in f) and (self.modality.upper() in f)]
-        else:  # load all images (RGB and NIR)
-            self.image_files = [f for f in os.listdir(path) if '.jpg' in f]
-
         if self.mode == 'train':
             self.annotations = dict()
+
             with open(os.path.join(self.path, 'annotation.csv')) as csv_file:
                 for row in csv.reader(csv_file, delimiter=','):
+                    if int(row[5]) in excluded_classes: continue
+
                     file_name = row[0]
                     obj = [float(value) for value in row[1:5]]
                     obj.append(int(row[5]))
@@ -35,10 +53,42 @@ class VisumData(Dataset):
                     else:
                         self.annotations[file_name] = [obj]
 
-            self.class_names = {
-                0: 'book', 1: 'bottle', 2: 'box', 3: 'cellphone',
-                4: 'cosmetics', 5: 'glasses', 6: 'headphones', 7: 'keys',
-                8: 'wallet', 9: 'watch', -1: 'n.a.'}
+            # Here we keep all the files which we are allowed to use for training
+            self.allowed_files_idx = set(f[3:] for f in self.annotations.keys())
+
+            logger.debug(f'We have the following objects distributions: {self.compute_class_distribution()}')
+
+        if len(excluded_classes) != 0:
+            idx_remap = get_idx_remap(excluded_classes)
+            self.annotations = {f: remap_classes(self.annotations[f], idx_remap) for f in self.annotations}
+            logger.debug(f'Class indices were remapped, because some of them are exluded: {list(range(10))} -> {idx_remap}')
+            logger.debug(f'Now we have the following class distribution: {self.compute_class_distribution()}')
+
+        self.image_files = [f for f in os.listdir(path) if self.check_file(f)]
+        logger.debug(f'Visum Dataset has initialized. It contains {len(self.image_files)} images')
+
+    def check_file(self, file_name:str) -> bool:
+        if self.modality in ['rgb', 'nir']:
+            # load only RGB or NIR images
+            return ('.jpg' in file_name) and (self.modality.upper() in file_name) and self.check_file_class(file_name)
+        elif self.modality == 'all':
+            # load all images (RGB and NIR)
+            return ('.jpg' in file_name) and self.check_file_class(file_name)
+        else:
+            raise NotImplementedError('Unknown modality')
+
+    def check_file_class(self, file_name:str) -> bool:
+        """Checks, if we can use this file or it was excluded from training (regarded as a new class)"""
+        if self.mode == 'train':
+            return file_name[3:] in self.allowed_files_idx
+        else:
+            return True # accept all classes
+
+    def compute_class_distribution(self):
+        counts = Counter(obj[4] for objects in self.annotations.values() for obj in objects)
+        freqs = sorted(counts.most_common())
+
+        return freqs
 
     def __getitem__(self, idx):
         file_name = self.image_files[idx]
@@ -51,6 +101,7 @@ class VisumData(Dataset):
             num_objs = len(ann)
             boxes = list()
             labels = list()
+
             for ii in range(num_objs):
                 boxes.append(ann[ii][0:4])
                 labels.append(ann[ii][4])
@@ -65,9 +116,15 @@ class VisumData(Dataset):
                 target = {}
                 target["image_id"] = image_id
                 target["boxes"] = boxes
-                target["labels"] = labels
                 target["area"] = area
                 target["iscrowd"] = iscrowd
+
+                # We do +1 here, because 0 class is reserved for background
+                # and our annotations do not know about that
+                target["labels"] = labels + 1
+
+                assert torch.all(target['labels'] != 0).item(), \
+                    "You have provided -1 class for training, dude. Why?"
             else:
                 target = None
         else:
@@ -80,21 +137,3 @@ class VisumData(Dataset):
 
     def __len__(self):
         return len(self.image_files)
-
-
-class VisdomLinePlotter(object):
-    """Plots to Visdom"""
-    def __init__(self, env_name='main'):
-        self.viz = Visdom()
-        self.env = env_name
-        self.plots = {}
-    def plot(self, var_name, split_name, title_name, x, y):
-        if var_name not in self.plots:
-            self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
-                legend=[split_name],
-                title=title_name,
-                xlabel='Epochs',
-                ylabel=var_name
-            ))
-        else:
-            self.viz.line(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name, update = 'append')
