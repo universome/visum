@@ -9,19 +9,19 @@ import albumentations as A
 
 TRAIN_AUGMENTATIONS = [
     A.HorizontalFlip(0.5),
-    A.OneOf([
-        A.Blur(p=0.5, blur_limit=5),
-        A.MedianBlur(p=0.5, blur_limit=4),
-        A.MotionBlur(p=0.5, blur_limit=4),
-    ]),
-    A.HueSaturationValue(p=0.4, hue_shift_limit=15, sat_shift_limit=20, val_shift_limit=15),
-    A.RGBShift(p=0.5),
-    A.GaussNoise(p=0.5),
-    A.CLAHE(p=0.2, tile_grid_size=(8, 8)),
-    A.RandomBrightnessContrast(p=0.3),
-    A.RandomGamma(p=0.5),
-    A.ShiftScaleRotate(p=0.5, shift_limit=0.03, rotate_limit=5, scale_limit=0.05),
-    A.JpegCompression(p=0.5)
+    # A.OneOf([
+    #     A.Blur(p=0.5, blur_limit=5),
+    #     A.MedianBlur(p=0.5, blur_limit=4),
+    #     A.MotionBlur(p=0.5, blur_limit=4),
+    # ]),
+    # A.HueSaturationValue(p=0.4, hue_shift_limit=15, sat_shift_limit=20, val_shift_limit=15),
+    # A.RGBShift(p=0.5),
+    # A.GaussNoise(p=0.5),
+    # A.CLAHE(p=0.2, tile_grid_size=(8, 8)),
+    # A.RandomBrightnessContrast(p=0.3),
+    # A.RandomGamma(p=0.5),
+    # A.ShiftScaleRotate(p=0.5, shift_limit=0.03, rotate_limit=5, scale_limit=0.05),
+    # A.JpegCompression(p=0.5)
 ]
 
 
