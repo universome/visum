@@ -13,7 +13,7 @@ coloredlogs.install(level="DEBUG", logger=logger)
 
 """
 To validate on unknown classes you should do the following:
-1. train with argument --exclude_classes
+1. train with argument --excluded_classes
 2. test with argument --num_excluded_classes
 3. run this script by smth like this:
     $ python src/utils/class_exclusion.py --results_dir=class_exclusion_results --excluded_classes 0 1

@@ -7,7 +7,6 @@ from torchvision.ops import boxes as box_ops
 from torchvision.ops import misc as misc_nn_ops
 from torchvision.ops import roi_align
 
-from src.constants import NUM_CLASSES
 from . import _utils as det_utils
 from src.constants import SMOOTHED_MAX_PROB
 
@@ -28,11 +27,12 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
 
     labels = torch.cat(labels, dim=0)
     regression_targets = torch.cat(regression_targets, dim=0)
+    N, num_classes = class_logits.shape
 
     # For one-hot only
     # classification_loss = F.cross_entropy(class_logits, labels)
 
-    smoothed_labels = indices_to_smooth(labels)
+    smoothed_labels = indices_to_smooth(labels, num_classes)
     class_logits = class_logits.log_softmax(1)
 
     classification_loss = F.kl_div(class_logits, smoothed_labels, reduction='batchmean')
@@ -42,7 +42,6 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     # advanced indexing
     sampled_pos_inds_subset = torch.nonzero(labels > 0).squeeze(1)
     labels_pos = labels[sampled_pos_inds_subset]
-    N, num_classes = class_logits.shape
     box_regression = box_regression.reshape(N, -1, 4)
 
     box_loss = F.smooth_l1_loss(
@@ -55,11 +54,11 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     return classification_loss, box_loss
 
 
-def indices_to_smooth(indices):
+def indices_to_smooth(indices, num_classes):
     # p: Tensor of shape [N_samples]
     remaining_prob = 1.0 - SMOOTHED_MAX_PROB
-    smoothing_value = remaining_prob / (NUM_CLASSES - 1)
-    filled_probs_no_peak = torch.full((NUM_CLASSES,), smoothing_value).to(indices.device)
+    smoothing_value = remaining_prob / (num_classes - 1)
+    filled_probs_no_peak = torch.full((num_classes,), smoothing_value).to(indices.device)
     smoothed_prob = filled_probs_no_peak.repeat(indices.size(0), 1)
     smoothed_prob.scatter_(1, indices.unsqueeze(1).type(torch.int64), SMOOTHED_MAX_PROB)
     return smoothed_prob
