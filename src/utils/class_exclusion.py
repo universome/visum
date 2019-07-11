@@ -51,6 +51,23 @@ def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:s
     print('Done!')
 
 
+def generate_results_for_non_conf_preds(results_dir:str, predictions, t:float, higher:bool=True):
+    if not os.path.isdir(results_dir):
+        os.mkdir(results_dir)
+
+    annotations = read_annotations('/home/master/dataset/train/annotation.csv')
+    non_confidence_preds = predictions[(predictions.confidence > t if higher else predictions.confidence < t)]
+    non_confident_images = non_confidence_preds.filename.values
+
+    annotations = annotations[annotations.filename.isin(non_confident_images)]
+    annotations.to_csv(f'{results_dir}/annotation.csv', index=None, header=None)
+    non_confidence_preds.to_csv(f'{results_dir}/predictions.csv', index=None, header=None)
+
+
+    for img in non_confident_images:
+        copyfile(f'/home/master/dataset/train/{img}', f'{results_dir}/{img}')
+
+
 def read_annotations(path:str) -> pd.DataFrame:
     return pd.read_csv(path, header=None, names=['filename', 'xmin', 'ymin', 'xmax', 'ymax', 'class_idx'])
 
