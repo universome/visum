@@ -77,27 +77,6 @@ def parse_args():
     return args
 
 
-def remap_classes(objects:List[Tuple[float, float, float, float, int]], idx_remap:List[int]):
-    return [obj[:4] + [idx_remap[obj[4]]] for obj in objects]
-
-
-def get_idx_remap(excluded_classes:Collection[int]) -> List[int]:
-    new_class_idx = list(range(10 - len(excluded_classes)))
-    idx_remap = [(-1 if i in excluded_classes else new_class_idx.pop(0)) for i in range(10)]
-
-    return idx_remap
-
-
-def get_backward_idx_remap(excluded_classes:List[int]) -> List[int]:
-    """
-    idx_remap = [0, 1, -1, 2, 3, -1, 4] => backward_idx_remap = [0, 1, 3, 4, 6]
-    """
-    idx_remap = get_idx_remap(excluded_classes)
-    backward_idx_remap = [i for i, v in enumerate(idx_remap) if v != -1]
-
-    return backward_idx_remap
-
-
 def main():
     args = parse_args()
     generate_annotations_for_excluded_classes(args['annotations_path'], args['predictions_path'], args['results_dir'], args['excluded_classes'])

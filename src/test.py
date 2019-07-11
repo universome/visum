@@ -18,8 +18,6 @@ from src.utils.transforms import create_transform
 from src.utils.engine import train_one_epoch, evaluate
 from src.utils.visum_utils import VisumData
 from src.train import build_model
-from src.constants import NUM_CLASSES
-from src.utils.class_exclusion import get_backward_idx_remap
 
 
 def main():
@@ -27,7 +25,7 @@ def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # Loading model
-    model = build_model(NUM_CLASSES - len(args['excluded_classes'])).to(device)
+    model = build_model().to(device)
     model.load_state_dict(torch.load(args['model_path']))
 
     # Loading data
@@ -58,11 +56,6 @@ def main():
         # and the evaluation thing expects our model to have only 10 classes
         # because it does not care about background class
         labels = [l - 1 for l in labels]
-
-        # Now we can remap the classes back to their normal values
-        if len(args['excluded_classes']) != 0:
-            backward_idx_remap = get_backward_idx_remap(args['excluded_classes'])
-            labels = [backward_idx_remap[l] for l in labels]
 
         nms_boxes, nms_labels, nms_scores = nms(boxes, labels, scores, NMS_THR)
 
@@ -109,8 +102,6 @@ def parse_args():
     parser.add_argument('-d', '--data_path', default='/home/master/dataset/test', metavar='', help='test data directory path')
     parser.add_argument('-m', '--model_path', default='./model.pth', metavar='', help='model file')
     parser.add_argument('-o', '--output', default='./predictions.csv', metavar='', help='output CSV file name')
-    parser.add_argument('--excluded_classes', default=[], type=int, nargs='+',
-        help='If you have trained your model with "--excluded_classes" argument, then you should pass it here too.')
     parser.add_argument('--nms_threshold', type=float, default=0.1, help="Non Maximum Suppresion threshold")
     parser.add_argument('--reject_threshold', type=float, default=0.6,
         help="Rejection threshold to classify as unknown class (naive approach!)")

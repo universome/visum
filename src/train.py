@@ -30,7 +30,7 @@ def main():
     fix_random_seed(RANDOM_SEED)
 
     args = parse_cli_args()
-    model = build_model(NUM_CLASSES - len(args['excluded_classes']))
+    model = build_model()
 
     # excluded_classes argument is passed in both training and validation,
     # because validation during training does not bother with "new class" prediction
@@ -118,8 +118,8 @@ def parse_cli_args():
     return args
 
 
-def build_model(num_classes:int):
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=num_classes, pretrained=True, box_score_thresh=0.2)
+def build_model():
+    model = detection.fasterrcnn_resnet50_fpn(num_classes=NUM_CLASSES, pretrained=True, box_score_thresh=0.2)
 
     return model
 
