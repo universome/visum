@@ -1,6 +1,7 @@
 import os
 import argparse
 import logging
+from shutil import copyfile
 from typing import List, Dict, Tuple, Collection
 from collections import OrderedDict
 
@@ -25,7 +26,6 @@ To validate on unknown classes you should do the following:
 def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:str, results_dir:str, excluded_classes:List[int]):
     annotations = read_annotations(annotations_path)
     predictions = read_predictions(preds_path)
-    idx_remap = get_idx_remap(excluded_classes)
     included_classes = [c for c in range(10) if not c in excluded_classes]
 
     for c in excluded_classes:
@@ -35,17 +35,21 @@ def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:s
 
         # Generating annotations
         # The logic is simple: just remap all excluded classes to -1
-        # And remap non-excluded classes to their class indicies, used during training
+        # and remove non-needed classes
         curr_annotations = annotations[annotations.class_idx.isin(allowed_classes)].copy()
-        curr_annotations['class_idx'] = curr_annotations.class_idx.map(lambda x: idx_remap[x])
+        curr_annotations.loc[curr_annotations.class_idx == c, 'class_idx'] = -1
         curr_annotations.to_csv(f'{curr_results_dir}/annotation.csv', index=None, header=None)
 
-        # We need to generate a subset predictions for each excluded class as a new class
-        # so we do not have more files in predictions than in annotations
-        allowed_files = annotations[annotations.class_idx.isin(allowed_classes)].filename.values
-        allowed_files = set(allowed_files)
-        curr_predictions = predictions[predictions.filename.isin(allowed_files)].copy()
+        # Generate a subset of prediction file which corresponds to the current annotation file
+        # (i.e. based on the same images)
+        allowed_images = annotations[annotations.class_idx.isin(allowed_classes)].filename.values
+        allowed_images = set(allowed_images)
+        curr_predictions = predictions[predictions.filename.isin(allowed_images)].copy()
         curr_predictions.to_csv(f'{curr_results_dir}/predictions.csv', index=None, header=None)
+
+        # evaluation.py works in such a way that it requires a directory of files :|
+        for img in allowed_images:
+            copyfile(f'/home/master/dataset/train/{img}', f'{curr_results_dir}/{img}')
 
     print('Done!')
 
@@ -56,6 +60,7 @@ def read_annotations(path:str) -> pd.DataFrame:
 
 def read_predictions(path:str) -> pd.DataFrame:
     return pd.read_csv(path, header=None, names=['filename', 'xmin', 'ymin', 'xmax', 'ymax', 'class_idx', 'confidence'])
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='VISUM 2019 competition - baseline training script', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -81,6 +86,16 @@ def get_idx_remap(excluded_classes:Collection[int]) -> List[int]:
     idx_remap = [(-1 if i in excluded_classes else new_class_idx.pop(0)) for i in range(10)]
 
     return idx_remap
+
+
+def get_backward_idx_remap(excluded_classes:List[int]) -> List[int]:
+    """
+    idx_remap = [0, 1, -1, 2, 3, -1, 4] => backward_idx_remap = [0, 1, 3, 4, 6]
+    """
+    idx_remap = get_idx_remap(excluded_classes)
+    backward_idx_remap = [i for i, v in enumerate(idx_remap) if v != -1]
+
+    return backward_idx_remap
 
 
 def main():

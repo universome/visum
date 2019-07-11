@@ -126,7 +126,7 @@ def build_model(num_classes:int):
 
 def log_metrics(coco_evaluator, tb_writer, epoch, mode:str):
     stats = coco_evaluator.coco_eval['bbox'].stats
-    tb_writer.add_scalar("AP__IoU_0_50_0_95__area_all__maxDets_100/{mode}", stats[0], epoch)
+    tb_writer.add_scalar(f"AP__IoU_0_50_0_95__area_all__maxDets_100/{mode}", stats[0], epoch)
     tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50__area_all__maxDets_100", stats[1], epoch)
     tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_75__area_all__maxDets_100", stats[2], epoch)
     tb_writer.add_scalar(f"OTHER/{mode}/AP__IoU_0_50_0_95__area_small__maxDets_100", stats[3], epoch)
