@@ -8,7 +8,7 @@ import albumentations as A
 
 
 TRAIN_AUGMENTATIONS = [
-    A.HorizontalFlip(p=0.5),
+    # A.HorizontalFlip(p=0.5),
     A.OneOf([
         A.Blur(p=0.5, blur_limit=3),
         A.MedianBlur(p=0.5, blur_limit=3),
@@ -16,7 +16,7 @@ TRAIN_AUGMENTATIONS = [
     ]),
     # A.HueSaturationValue(p=0.4, hue_shift_limit=15, sat_shift_limit=20, val_shift_limit=15),
     # A.RGBShift(p=0.5),
-    A.GaussNoise(p=0.5),
+    A.GaussNoise(p=0.5, var_limit=(10.0, 30.0)),
     # A.CLAHE(p=0.2, tile_grid_size=(8, 8)),
     A.RandomBrightnessContrast(p=0.3),
     # A.RandomGamma(p=0.5),

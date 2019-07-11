@@ -56,15 +56,15 @@ def main():
         # because it does not care about background class
         labels = [l - 1 for l in labels]
 
-        nms_boxes, nms_labels = nms(boxes, labels, NMS_THR)
+        nms_boxes, nms_labels, nms_scores = nms(boxes, labels, scores, NMS_THR)
 
         for bb in range(len(nms_labels)):
             pred = np.concatenate((list(file_names), list(nms_boxes[bb, :])))  # bounding box
-            if scores[bb] >= REJECT_THR:
+            if nms_scores[bb] >= REJECT_THR:
                 pred = np.concatenate((pred, [nms_labels[bb]]))  # object label
             else:
                 pred = np.concatenate((pred, [-1]))  # Rejects to classify
-            pred = np.concatenate((pred, [scores[bb]]))  # BEST CLASS SCORE
+            pred = np.concatenate((pred, [nms_scores[bb]]))  # BEST CLASS SCORE
             pred = list(pred)
             predictions.append(pred)
 
@@ -82,7 +82,7 @@ def parse_args():
     parser.add_argument('--num_classes_excluded', default=0, type=int,
         help='If you have trained your model with "--excluded_classes" argument, then you should pass how many there were.')
     parser.add_argument('--nms_threshold', type=float, default=0.1, help="Non Maximum Suppresion threshold")
-    parser.add_argument('--reject_threshold', type=float, default=0.5,
+    parser.add_argument('--reject_threshold', type=float, default=0.6,
         help="Rejection threshold to classify as unknown class (naive approach!)")
 
     args = vars(parser.parse_args())
