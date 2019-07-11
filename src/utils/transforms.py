@@ -6,8 +6,11 @@ import numpy as np
 import torchvision.transforms.functional as F
 import albumentations as A
 
+xmin = 120; xmax = 392; ymin = 291; ymax = 456; epsilon = 20
+
 
 TRAIN_AUGMENTATIONS = [
+    # A.Crop(x_min=xmin-epsilon, y_min=ymin-epsilon, x_max=xmax+epsilon, y_max=ymax+epsilon, p=1.0),
     # A.HorizontalFlip(p=0.5),
     A.OneOf([
         A.Blur(p=0.5, blur_limit=3),
@@ -21,7 +24,7 @@ TRAIN_AUGMENTATIONS = [
     A.RandomBrightnessContrast(p=0.3),
     # A.RandomGamma(p=0.5),
     # A.ShiftScaleRotate(p=0.5, shift_limit=0.03, rotate_limit=5, scale_limit=0.05),
-    # A.JpegCompression(p=0.5)
+    # A.JpegCompression(p=0.5),
 ]
 
 
@@ -40,6 +43,7 @@ def create_transform(augmentations:Collection[str]=None):
         transforms_to_apply.append(albu_transform)
 
     transforms_to_apply.append(ToTensor())
+    transforms_to_apply.append(CenterCrop(xmin, xmax, ymin, ymax, epsilon))
 
     return Compose(transforms_to_apply)
 
@@ -61,6 +65,27 @@ class Compose(object):
         return image, target
 
 
+class CenterCrop(object):
+    def __init__(self, xmin, xmax, ymin, ymax, epsilon):
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+        self.epsilon = epsilon
+
+    def __call__(self, image, target):
+        assert image.size(0) == 3
+
+        image = image[:, ymin - epsilon : ymax + epsilon, xmin - epsilon : xmax + epsilon]
+
+        target['boxes'] = torch.stack([self.center_crop_bbox(bb) for bb in target['boxes']])
+
+        return image, target
+
+    def center_crop_bbox(self, bbox:torch.Tensor):
+        return torch.tensor([bbox[0] - xmin, bbox[1] - ymin, bbox[2] - xmin, bbox[3] - ymin])
+
+
 class ToTensor(object):
     def __call__(self, image, target):
         return F.to_tensor(image), target
@@ -76,8 +101,8 @@ def get_input_for_albumentations(image, target):
 
 def merge_albu_result_with_target(albu_result, target):
     return albu_result["image"], {
-        "boxes": albu_result["bboxes"],
-        "labels": albu_result["labels"],
+        "boxes": torch.tensor(albu_result["bboxes"]),
+        "labels": torch.tensor(albu_result["labels"]),
         "image_id": target["image_id"],
 
         # TODO: actually, area could change after transformations, but let's hope that it didn't
