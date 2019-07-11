@@ -23,33 +23,30 @@ To validate on unknown classes you should do the following:
 """
 
 
-def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:str, results_dir:str, excluded_classes:List[int]):
+def generate_annotations_for_excluded_classes(annotations_path:str, preds_path:str, val_imgs_dir:str, results_dir:str, excluded_classes:List[int]):
     annotations = read_annotations(annotations_path)
     predictions = read_predictions(preds_path)
-    included_classes = [c for c in range(10) if not c in excluded_classes]
+    val_imgs = [f for f in os.listdir(val_imgs_dir) if f[-4:] == '.jpg']
 
-    for c in excluded_classes:
-        allowed_classes = included_classes + [c]
-        curr_results_dir = os.path.join(results_dir, f'class_{c}')
-        os.makedirs(curr_results_dir, exist_ok=True)
+    if not os.path.isdir(results_dir):
+        logger.warn(f'Creating results directory: {results_dir}')
+        os.makedirs(results_dir, exist_ok=True)
 
-        # Generating annotations
-        # The logic is simple: just remap all excluded classes to -1
-        # and remove non-needed classes
-        curr_annotations = annotations[annotations.class_idx.isin(allowed_classes)].copy()
-        curr_annotations.loc[curr_annotations.class_idx == c, 'class_idx'] = -1
-        curr_annotations.to_csv(f'{curr_results_dir}/annotation.csv', index=None, header=None)
+    # Generating annotations
+    # We should save only validation images (and those which are new objects, because they are validation too)
+    annotations = annotations[annotations.filename.isin(val_imgs) | annotations.class_idx.isin(excluded_classes)]
+    annotations.loc[annotations.class_idx.isin(excluded_classes), 'class_idx'] = -1
+    annotations.to_csv(os.path.join(results_dir, 'annotation.csv'), index=None, header=None)
 
-        # Generate a subset of prediction file which corresponds to the current annotation file
-        # (i.e. based on the same images)
-        allowed_images = annotations[annotations.class_idx.isin(allowed_classes)].filename.values
-        allowed_images = set(allowed_images)
-        curr_predictions = predictions[predictions.filename.isin(allowed_images)].copy()
-        curr_predictions.to_csv(f'{curr_results_dir}/predictions.csv', index=None, header=None)
+    # Generate a subset of prediction file which corresponds to the current annotation file
+    # (i.e. based on the same images)
+    allowed_images = set(annotations.filename.values)
+    predictions = predictions[predictions.filename.isin(allowed_images)].copy()
+    predictions.to_csv(os.path.join(results_dir, 'predictions.csv'), index=None, header=None)
 
-        # evaluation.py works in such a way that it requires a directory of files :|
-        for img in allowed_images:
-            copyfile(f'/home/master/dataset/train/{img}', f'{curr_results_dir}/{img}')
+    # evaluation.py works in such a way that it requires a directory of files :|
+    for img in allowed_images:
+        copyfile(f'/home/master/dataset/train/{img}', f'{results_dir}/{img}')
 
     print('Done!')
 
@@ -68,6 +65,7 @@ def parse_args():
     parser.add_argument('--predictions_path', type=str, default='./predictions.csv', help='Path to original predictions')
     parser.add_argument('--results_dir', type=str, required=True, help='Directory where to save the results')
     parser.add_argument('--excluded_classes', required=True, type=int, nargs='+', help='Classes to exclude')
+    parser.add_argument('--val_imgs_dir', type=str, help="Dir to validation img", default='/home/visum/mody/models_day3/dataset_seed42')
     args = vars(parser.parse_args())
 
     if not os.path.isdir(args['results_dir']):
@@ -79,7 +77,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    generate_annotations_for_excluded_classes(args['annotations_path'], args['predictions_path'], args['results_dir'], args['excluded_classes'])
+    generate_annotations_for_excluded_classes(
+        args['annotations_path'], args['predictions_path'], args['val_imgs_dir'],
+        args['results_dir'], args['excluded_classes'])
 
 
 if __name__ == "__main__":
