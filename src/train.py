@@ -44,11 +44,11 @@ def main():
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=2, shuffle=True, num_workers=0,
+        dataset, batch_size=16, shuffle=True, num_workers=0,
         collate_fn=utils.collate_fn)
 
     data_loader_val = torch.utils.data.DataLoader(
-        dataset_val, batch_size=2, shuffle=False, num_workers=0,
+        dataset_val, batch_size=16, shuffle=False, num_workers=0,
         collate_fn=utils.collate_fn)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -87,7 +87,7 @@ def parse_cli_args():
     parser.add_argument('-d', '--data_path', default='/home/master/dataset/train', metavar='', help='data directory path')
     parser.add_argument('-m', '--model_path', default='./baseline.pth', metavar='', help='model file (output of training)')
     parser.add_argument('--epochs', default=100, type=int, metavar='', help='number of epochs')
-    parser.add_argument('--lr', default=0.005, type=float, metavar='', help='learning rate')
+    parser.add_argument('--lr', default=0.0005, type=float, metavar='', help='learning rate')
     parser.add_argument('--l2', default=0.0005, type=float, metavar='', help='L-2 regularization')
     parser.add_argument('--checkpoints_path', default='checkpoints', type=str, help='Directory path to save checkpoints')
     parser.add_argument('--log_dir', type=str, help='Directory where Tensorboard logs are going to be saved', default='tensorboard-logs')
@@ -119,7 +119,13 @@ def parse_cli_args():
 
 
 def build_model(num_classes:int):
-    model = detection.fasterrcnn_resnet50_fpn(num_classes=num_classes, pretrained=True, box_score_thresh=0.2)
+    model = detection.fasterrcnn_resnet50_fpn(
+        num_classes=num_classes,
+        pretrained=True,
+        box_score_thresh=0.2,
+        min_size=205,
+        rpn_pre_nms_top_n_train=500,
+        rpn_post_nms_top_n_train=500)
 
     return model
 
